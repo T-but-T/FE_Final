@@ -40,7 +40,7 @@ export default function ProfilePage() {
               restaurant: r.restaurant?.name || 'Unknown Restaurant',
               rawDate: r.bookingDate,
               time: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-              originalTime: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }), 
+              originalTime: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
               isEditing: false
             }));
             setReservations(mappedReservations);
@@ -97,7 +97,7 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error('Update failed');
-      
+
       // 🌟 2. เมื่อ Save สำเร็จ ให้อัปเดตค่าเวลาใหม่, ปิดโหมด Edit และอัปเดต originalTime
       setReservations(reservations.map(res =>
         res.id === id ? { ...res, isEditing: false, originalTime: currentTime, rawDate: updatedDate.toISOString() } : res
@@ -179,7 +179,7 @@ export default function ProfilePage() {
           ) : (
             <div className="w-full">
               <h3 className="font-bold mb-4 text-xl">My Reservations (Max 3)</h3>
-              
+
               {/* 🌟 3. เอา overflow-y-auto ออก เพื่อไม่ให้มันตัด Dropdown ทิ้ง */}
               <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-inner min-h-[300px]">
                 {reservations.length > 0 ? reservations.map((res) => (
@@ -242,7 +242,7 @@ export default function ProfilePage() {
   );
 }
 
-/* --- CUSTOM DROPDOWN COMPONENT --- */
+/* --- CUSTOM DROPDOWN COMPONENT (แก้ไขให้ลื่นไหล ไม่มีบัคหน่วง) --- */
 function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string, onTimeChange: (time: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [hour, setHour] = useState(initialTime.split(':')[0]);
@@ -252,12 +252,28 @@ function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-  useEffect(() => {
-    onTimeChange(`${hour}:${minute} ${ampm}`);
-  }, [hour, minute, ampm, onTimeChange]);
+  // 🌟 สร้างฟังก์ชันจัดการเวลาแยกต่างหากแทนการใช้ useEffect
+  const handleTimeSelect = (type: 'hour' | 'minute' | 'ampm', value: string) => {
+    let newHour = hour;
+    let newMinute = minute;
+    let newAmpm = ampm;
+
+    if (type === 'hour') {
+      setHour(value);
+      newHour = value;
+    } else if (type === 'minute') {
+      setMinute(value);
+      newMinute = value;
+    } else if (type === 'ampm') {
+      setAmpm(value);
+      newAmpm = value;
+    }
+
+    // ส่งค่ากลับไปหา Parent ทันทีที่กดเลือก
+    onTimeChange(`${newHour}:${newMinute} ${newAmpm}`);
+  };
 
   return (
-    // 🌟 4. ใช้ relative ให้ TimePicker เป็นจุดอ้างอิง และปรับ z-index ให้สูงที่สุด
     <div className="relative z-[9999]">
       <div
         onClick={() => setIsOpen(!isOpen)}
@@ -268,23 +284,44 @@ function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string
       </div>
 
       {isOpen && (
-        // 🌟 5. ใช้ absolute และเลื่อนลงมา (top-full mt-1) หรือจะดันขึ้นบนก็ได้ถ้าที่ข้างล่างไม่พอ
         <div className="absolute top-full mt-2 left-0 bg-white border border-gray-300 shadow-2xl rounded-xl flex h-48 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+
           <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1 bg-white">
             {hours.map(h => (
-              <div key={h} onClick={() => setHour(h)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${hour === h ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}>{h}</div>
+              <div
+                key={h}
+                onClick={() => handleTimeSelect('hour', h)}
+                className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${hour === h ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}
+              >
+                {h}
+              </div>
             ))}
           </div>
+
           <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1 bg-white">
             {minutes.map(m => (
-              <div key={m} onClick={() => setMinute(m)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${minute === m ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}>{m}</div>
+              <div
+                key={m}
+                onClick={() => handleTimeSelect('minute', m)}
+                className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${minute === m ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}
+              >
+                {m}
+              </div>
             ))}
           </div>
+
           <div className="w-16 flex flex-col py-1 bg-white">
             {['AM', 'PM'].map(p => (
-              <div key={p} onClick={() => setAmpm(p)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 flex-1 flex items-center justify-center text-sm font-bold ${ampm === p ? 'bg-[#5C5CFF] text-white' : ''}`}>{p}</div>
+              <div
+                key={p}
+                onClick={() => handleTimeSelect('ampm', p)}
+                className={`p-2 text-center cursor-pointer hover:bg-blue-50 flex-1 flex items-center justify-center text-sm font-bold ${ampm === p ? 'bg-[#5C5CFF] text-white' : ''}`}
+              >
+                {p}
+              </div>
             ))}
           </div>
+
         </div>
       )}
     </div>
