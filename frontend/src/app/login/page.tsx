@@ -17,31 +17,45 @@ export default function LoginPage() {
     setError('');
 
     try {
+      // 🌟 Step 1: Login เพื่อเอา Token
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        // 🌟 1. เก็บ Token และ Role
-        localStorage.setItem('token', data.token);
+        const token = data.token;
+        localStorage.setItem('token', token);
         localStorage.setItem('role', data.role || 'user');
+
+        // 🌟 Step 2: ยิงไปดึงข้อมูล Profile ของเราจริงๆ เพื่อเอา "ชื่อ" (Name)
+        // หมายเหตุ: เช็คกับเพื่อนว่า endpoint ดึงข้อมูลตัวเองคือ /auth/me หรือเปล่า
+        try {
+          const profileRes = await fetch(`${API_URL}/auth/me`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const profileData = await profileRes.json();
+          
+          if (profileData.success) {
+            // บันทึกชื่อจริงที่ได้จาก Database ลงไป
+            localStorage.setItem('userName', profileData.data.name);
+          } else {
+            localStorage.setItem('userName', 'Member');
+          }
+        } catch (profileErr) {
+          console.error('Fetch profile error:', profileErr);
+          localStorage.setItem('userName', 'Member');
+        }
+
+        // 🌟 Step 3: เคลียร์ทุกอย่างแล้วไปหน้าแรก
+        router.push('/');
+        router.refresh();
         
-        // 🌟 2. เก็บชื่อผู้ใช้ (userName) ลง localStorage
-        // เช็คก่อนว่า Backend ส่งชื่อมาตรงไหน (ส่วนใหญ่คือ data.name หรือ data.data.name)
-        const nameToStore = data.data?.name || data.name || "User";
-        localStorage.setItem('userName', nameToStore);
-        
-        // 🌟 3. ไปที่หน้าแรกและสั่ง Refresh เพื่อให้ TopMenu เห็นค่าใหม่
-        router.push('/'); 
-        router.refresh(); 
-        
-        // แถม: ใช้ window.location เพื่อความชัวร์ในการเคลียร์ Cache เก่า (ถ้ายังขึ้น Guest อยู่)
+        // บังคับเปลี่ยนหน้าเพื่อความชัวร์ในการดึงค่าใหม่
         setTimeout(() => {
           window.location.href = "/";
         }, 100);
