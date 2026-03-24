@@ -9,15 +9,26 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tel, setTel] = useState('');
-  const [error, setError] = useState(''); // State สำหรับเก็บข้อความ Error
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  // ดึง API URL จาก env (ให้เหมือนหน้าอื่นๆ)
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(''); // รีเซ็ต error ทุกครั้งที่กดปุ่ม
+
+    // 🌟 1. เช็คความยาว Password (Client-side Validation)
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return; // หยุดการทำงาน ไม่ยิง API
+    }
+
+    // 🌟 2. เช็คความยาวเบอร์โทร (เบื้องต้น)
+    if (tel.length < 9) {
+      setError('Please enter a valid telephone number.');
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -30,18 +41,17 @@ export default function RegisterPage() {
           email,
           password,
           tel,
-          role: 'user' // กำหนด role เริ่มต้นเป็น user
+          role: 'user'
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        // สมัครสำเร็จ! ส่งไปหน้า Login ทันที
         alert('Registration successful! Please login.');
         router.push('/login');
       } else {
-        // ถ้าสมัครไม่สำเร็จ (เช่น Email ซ้ำ) ให้โชว์ Error
+        // กรณี Backend ตีกลับมา (เช่น Email ซ้ำ)
         setError(data.message || 'Registration failed. Please try again.');
       }
     } catch (err) {
@@ -55,16 +65,15 @@ export default function RegisterPage() {
       <TopMenu />
 
       <main className="grow flex items-center justify-center p-6 pt-24">
-        {/* กล่องดีไซน์ใหม่ให้เข้ากับหน้า Login */}
         <div className="bg-[#F3F4F6] w-full max-w-xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-2xl shadow-xl border border-gray-200">
 
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
 
           <form onSubmit={handleRegister} className="w-full flex flex-col gap-5 items-center">
 
-            {/* ส่วนแสดง Error */}
+            {/* ส่วนแสดง Error สีแดง */}
             {error && (
-              <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
+              <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200 animate-shake">
                 {error}
               </div>
             )}
@@ -93,6 +102,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6} // กันไว้อีกชั้นด้วย HTML attribute
               className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
@@ -105,7 +115,6 @@ export default function RegisterPage() {
               className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* ปุ่ม Sign up สีฟ้าเทพๆ */}
             <button
               type="submit"
               className="w-full bg-[#5C5CFF] text-white py-4 rounded-xl text-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg mt-2"
@@ -115,7 +124,6 @@ export default function RegisterPage() {
 
           </form>
 
-          {/* ลิงก์กลับไปหน้า Login */}
           <div className="text-gray-600 text-sm mt-4 flex gap-2 items-center">
             <span>Already have an account?</span>
             <Link
