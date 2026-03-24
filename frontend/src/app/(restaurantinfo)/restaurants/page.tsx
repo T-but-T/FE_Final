@@ -11,7 +11,7 @@ export default function ListPage() {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/v1/restaurants');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants`);
         const json = await response.json();
         setRestaurants(json.data);
       } catch (error) {

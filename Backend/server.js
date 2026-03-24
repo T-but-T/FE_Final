@@ -14,7 +14,7 @@ connectDB();
 
 const app=express();
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://restaurant-app-frontend-project.vercel.app/'],
+  origin: ['http://localhost:3000', 'https://restaurant-app-frontend-project.vercel.app'],
   credentials: true
 }));
 
