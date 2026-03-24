@@ -45,6 +45,10 @@ const RestaurantSchema=new mongoose.Schema({
     type: String, 
     default: 'no-photo.jpg' 
   },
+  description:{
+    type: String,
+    default: "No information available"
+},
 },{
   toJSON:{virtuals:true},
   toObject:{virtuals:true}

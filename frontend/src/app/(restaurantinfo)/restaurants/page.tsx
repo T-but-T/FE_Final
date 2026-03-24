@@ -77,7 +77,6 @@ export default function ListPage() {
                   <span className="w-40 font-medium shrink-0 whitespace-nowrap">Telephone:</span>
                   <span className="text-gray-600">{venue.tel}</span>
                 </div>
-                {/* ถ้ามีฟิลด์เวลาใน DB ให้ใส่เพิ่มตรงนี้ */}
               </div>
 
             </div>
