@@ -1,9 +1,13 @@
 'use client'
-import { useState } from 'react';
+import { useState, use } from 'react'; // 🌟 1. เพิ่มการ import 'use' เข้ามา
 import TopMenu from '@/components/TopMenu';
 
-// 🌟 รับค่า params เป็น id
-export default function ReservationPage({ params }: { params: { id: string } }) {
+// 🌟 2. แก้ Type ของ params ให้เป็น Promise
+export default function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
+
+  // 🌟 3. ใช้คำสั่ง use() แกะค่า id ออกมาจาก Promise
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
 
   const [currentPic, setCurrentPic] = useState(0);
   const mockPictures = ["Picture 1", "Picture 2", "Picture 3"];
@@ -23,9 +27,9 @@ export default function ReservationPage({ params }: { params: { id: string } }) 
 
         {/* Header */}
         <div>
-          {/* 🌟 ดึง params.id มาใช้งาน */}
+          {/* 🌟 4. เปลี่ยนจาก params.id เป็น id ที่เราเพิ่งแกะออกมา */}
           <h1 className="text-3xl font-medium mb-2">
-            Restaurant Name {params.id && `(ID: ${params.id})`}
+            Restaurant Name {id && `(ID: ${id})`}
           </h1>
           <div className="flex items-center gap-2 text-xl">
             <div className="text-gray-300 tracking-widest">
