@@ -17,7 +17,7 @@ export default function TopMenu() {
         href="/"
         className="bg-gray-200 text-black px-8 py-2 font-medium text-lg rounded-sm hover:bg-gray-300 transition cursor-pointer"
       >
-        Name
+        Main
       </Link>
 
       {/* Right: User Info and Buttons */}
