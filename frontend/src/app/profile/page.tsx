@@ -40,7 +40,7 @@ export default function ProfilePage() {
               restaurant: r.restaurant?.name || 'Unknown Restaurant',
               rawDate: r.bookingDate,
               time: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-              originalTime: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }), // เก็บค่าเดิมไว้ทำ Cancel
+              originalTime: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }), 
               isEditing: false
             }));
             setReservations(mappedReservations);
@@ -66,6 +66,7 @@ export default function ProfilePage() {
   };
 
   const handleCancel = (id: string) => {
+    // 🌟 1. เมื่อกด Cancel ให้กลับไปใช้เวลาเดิม (originalTime) และปิดโหมด Edit
     setReservations(reservations.map(res =>
       res.id === id ? { ...res, isEditing: false, time: res.originalTime } : res
     ));
@@ -97,6 +98,7 @@ export default function ProfilePage() {
 
       if (!response.ok) throw new Error('Update failed');
       
+      // 🌟 2. เมื่อ Save สำเร็จ ให้อัปเดตค่าเวลาใหม่, ปิดโหมด Edit และอัปเดต originalTime
       setReservations(reservations.map(res =>
         res.id === id ? { ...res, isEditing: false, originalTime: currentTime, rawDate: updatedDate.toISOString() } : res
       ));
@@ -177,15 +179,17 @@ export default function ProfilePage() {
           ) : (
             <div className="w-full">
               <h3 className="font-bold mb-4 text-xl">My Reservations (Max 3)</h3>
-              <div className="bg-white border border-gray-300 rounded-lg max-h-[400px] overflow-y-auto p-4 shadow-inner">
+              
+              {/* 🌟 3. เอา overflow-y-auto ออก เพื่อไม่ให้มันตัด Dropdown ทิ้ง */}
+              <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-inner min-h-[300px]">
                 {reservations.length > 0 ? reservations.map((res) => (
-                  <div key={res.id} className="flex flex-col sm:flex-row justify-between items-center bg-[#F9F9F9] p-5 border border-gray-200 rounded-lg mb-4 shadow-sm gap-4">
+                  <div key={res.id} className="relative flex flex-col sm:flex-row justify-between items-center bg-[#F9F9F9] p-5 border border-gray-200 rounded-lg mb-4 shadow-sm gap-4">
                     <div className="flex flex-col text-center sm:text-left">
                       <span className="font-bold text-xl text-blue-700">{res.restaurant}</span>
                       <span className="text-sm text-gray-500 italic">Reserved for: {user.name}</span>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-3">
+                    <div className="flex flex-wrap items-center justify-center gap-3 relative">
                       {res.isEditing ? (
                         <>
                           <TimePickerDropdown
@@ -216,16 +220,14 @@ export default function ProfilePage() {
                           >
                             Edit
                           </button>
+                          <button
+                            onClick={() => handleDelete(res.id)}
+                            className="px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition rounded-lg"
+                          >
+                            Delete
+                          </button>
                         </>
                       )}
-                      
-                      {/* ปุ่ม Delete มีตลอดเวลา หรือจะให้มีแค่ตอน Edit ก็ได้ แต่ทั่วไปมีไว้ตลอดจะสะดวกกว่าครับ */}
-                      <button
-                        onClick={() => handleDelete(res.id)}
-                        className="px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition rounded-lg"
-                      >
-                        Delete
-                      </button>
                     </div>
                   </div>
                 )) : (
@@ -255,7 +257,8 @@ function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string
   }, [hour, minute, ampm, onTimeChange]);
 
   return (
-    <div className="relative z-[100]"> {/* เพิ่ม z-index ตรงนี้ */}
+    // 🌟 4. ใช้ relative ให้ TimePicker เป็นจุดอ้างอิง และปรับ z-index ให้สูงที่สุด
+    <div className="relative z-[9999]">
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="bg-white border-2 border-[#5C5CFF] px-4 py-2 rounded-lg cursor-pointer flex items-center gap-3 text-black font-bold shadow-sm hover:border-blue-700 transition min-w-[130px]"
@@ -265,7 +268,8 @@ function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string
       </div>
 
       {isOpen && (
-        <div className="absolute bottom-full mb-2 right-0 bg-white border border-gray-300 shadow-2xl rounded-xl flex h-48 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+        // 🌟 5. ใช้ absolute และเลื่อนลงมา (top-full mt-1) หรือจะดันขึ้นบนก็ได้ถ้าที่ข้างล่างไม่พอ
+        <div className="absolute top-full mt-2 left-0 bg-white border border-gray-300 shadow-2xl rounded-xl flex h-48 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1 bg-white">
             {hours.map(h => (
               <div key={h} onClick={() => setHour(h)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${hour === h ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}>{h}</div>
