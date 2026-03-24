@@ -1,67 +1,113 @@
-'use client'
+'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import TopMenu from '@/components/TopMenu'; // นำ TopMenu มาใส่ให้เหมือนหน้าอื่นๆ
+import TopMenu from '@/components/TopMenu';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // ตรงนี้เอาไว้ต่อ API ยิงไปที่ Backend ครับ
-    alert(`Logging in with: \nEmail: ${email} \nPassword: ${password}`);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 🌟 1. เก็บ Token และ Role
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role || 'user');
+        
+        // 🌟 2. เก็บชื่อผู้ใช้ (userName) ลง localStorage
+        // เช็คก่อนว่า Backend ส่งชื่อมาตรงไหน (ส่วนใหญ่คือ data.name หรือ data.data.name)
+        const nameToStore = data.data?.name || data.name || "User";
+        localStorage.setItem('userName', nameToStore);
+        
+        // 🌟 3. ไปที่หน้าแรกและสั่ง Refresh เพื่อให้ TopMenu เห็นค่าใหม่
+        router.push('/'); 
+        router.refresh(); 
+        
+        // แถม: ใช้ window.location เพื่อความชัวร์ในการเคลียร์ Cache เก่า (ถ้ายังขึ้น Guest อยู่)
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 100);
+
+      } else {
+        setError(data.message || 'Invalid email or password');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Internal server error. Please try again later.');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
+    <div className="min-h-screen bg-white text-black flex flex-col font-sans">
       <TopMenu />
 
-      {/* Main Content: จัดให้อยู่กึ่งกลางหน้าจอ */}
       <main className="grow flex items-center justify-center p-6 pt-24">
+        <div className="bg-[#F3F4F6] w-full max-w-xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-2xl shadow-xl border border-gray-200">
+          
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
+          
+          <form onSubmit={handleLogin} className="w-full flex flex-col gap-5 items-center">
+            
+            {error && (
+              <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
+                {error}
+              </div>
+            )}
 
-        {/* กล่องสีเทาตรงกลาง */}
-        <div className="bg-[#D9D9D9] w-full max-w-2xl p-12 md:p-16 flex flex-col items-center gap-6 rounded-sm">
-
-          <form onSubmit={handleLogin} className="w-full flex flex-col gap-6 items-center">
-
-            {/* ช่องกรอก Email */}
             <input
               type="email"
-              placeholder="Email"
+              placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-white px-6 py-4 text-lg border border-transparent focus:border-gray-400 outline-none shadow-sm"
+              className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* ช่องกรอก Password */}
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-white px-6 py-4 text-lg border border-transparent focus:border-gray-400 outline-none shadow-sm"
+              className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* ปุ่ม Login สีน้ำเงิน */}
             <button
               type="submit"
-              className="bg-blue-600 text-white px-16 py-3 mt-2 text-lg hover:bg-blue-700 transition shadow-sm w-fit"
+              className="w-full bg-[#5C5CFF] text-white py-4 rounded-xl text-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg mt-2"
             >
               Login
             </button>
-
           </form>
 
-          {/* ลิงก์ไปหน้า Sign Up */}
-          <Link href="/register" className="text-gray-700 text-sm hover:underline hover:text-black transition mt-2">
-            Sign up link
-          </Link>
-
+          <div className="text-gray-600 text-sm mt-4 flex gap-2 items-center">
+            <span>Don't have an account?</span>
+            <Link
+              href="/register"
+              className="text-[#5C5CFF] font-bold hover:underline hover:text-blue-800 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </div>
         </div>
-
       </main>
     </div>
   );

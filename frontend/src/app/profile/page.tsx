@@ -10,6 +10,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // ดึง API URL จาก env (ถ้าไม่มีจะใช้ localhost เป็นค่าสำรอง)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
@@ -20,7 +23,7 @@ export default function ProfilePage() {
 
       try {
         // 1. Fetch User Profile
-        const userRes = await fetch('http://localhost:5000/api/v1/auth/me', {
+        const userRes = await fetch(`${API_URL}/auth/me`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -28,18 +31,19 @@ export default function ProfilePage() {
 
         if (userData.success) {
           setUser(userData.data);
-          
+
           // 2. Fetch Reservations for this user
-          const resRes = await fetch('http://localhost:5000/api/v1/reservations', {
+          const resRes = await fetch(`${API_URL}/reservations`, {
             method: 'GET',
             headers: { Authorization: `Bearer ${token}` }
           });
           const resData = await resRes.json();
           if (resData.success) {
-            // Map backend data to include your isEditing state
             const mappedReservations = resData.data.map((r: any) => ({
               id: r._id,
-              restaurant: r.restaurant.name,
+              restaurant: r.restaurant?.name || 'Unknown Restaurant',
+              // เก็บวันที่เดิมไว้เพื่อใช้ตอน Update
+              rawDate: r.bookingDate,
               time: new Date(r.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
               isEditing: false
             }));
@@ -57,28 +61,42 @@ export default function ProfilePage() {
     };
 
     fetchData();
-  }, [router]);
+  }, [router, API_URL]);
 
   const handleEditToggle = async (id: string, isEditing: boolean, currentTime: string) => {
-    if (isEditing) {
-      // Logic for saving to backend
+    const currentRes = reservations.find(r => r.id === id);
+
+    if (isEditing && currentRes) {
       const token = localStorage.getItem('token');
       try {
-        // Note: You may need to combine currentTime with a Date object based on your API requirements
-        await fetch(`http://localhost:5000/api/v1/reservations/${id}`, {
+        // สร้าง ISO Date จากเวลาที่แก้ (ใช้ปี/เดือน/วันเดิมจากฐานข้อมูล)
+        const [time, modifier] = currentTime.split(' ');
+        let [hours, minutes] = time.split(':');
+        let h = parseInt(hours, 10);
+        if (modifier === 'PM' && h < 12) h += 12;
+        if (modifier === 'AM' && h === 12) h = 0;
+
+        const updatedDate = new Date(currentRes.rawDate);
+        updatedDate.setHours(h, parseInt(minutes, 10));
+
+        const response = await fetch(`${API_URL}/reservations/${id}`, {
           method: 'PUT',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
+            Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({ bookingDate: currentTime }) 
+          body: JSON.stringify({ bookingDate: updatedDate.toISOString() })
         });
+
+        if (!response.ok) throw new Error('Update failed');
+        alert('Update successful!');
       } catch (err) {
         console.error("Update error:", err);
+        alert('Could not update reservation.');
       }
     }
 
-    setReservations(reservations.map(res => 
+    setReservations(reservations.map(res =>
       res.id === id ? { ...res, isEditing: !res.isEditing } : res
     ));
   };
@@ -88,7 +106,7 @@ export default function ProfilePage() {
     if (!window.confirm("Are you sure you want to delete this reservation?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/reservations/${id}`, {
+      const res = await fetch(`${API_URL}/reservations/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -107,23 +125,23 @@ export default function ProfilePage() {
   };
 
   const handleTimeUpdate = (id: string, newTime: string) => {
-    setReservations(reservations.map(res => 
+    setReservations(reservations.map(res =>
       res.id === id ? { ...res, time: newTime } : res
     ));
   };
 
-  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center text-black font-bold">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center text-black font-bold">Loading Profile...</div>;
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-sans text-black">
       <TopMenu />
-      <main className="flex items-center justify-center pt-24 p-6 text-black">
-        <div className="w-full max-w-4xl bg-[#E5E5E5] rounded-xl p-12 relative shadow-lg min-h-112.5">
-          
-          <button 
+      <main className="flex items-center justify-center pt-24 p-6">
+        <div className="w-full max-w-4xl bg-[#E5E5E5] rounded-xl p-12 relative shadow-lg">
+
+          <button
             onClick={handleLogout}
-            className="absolute top-8 right-8 bg-[#D9D9D9] border border-gray-400 px-6 py-1 rounded text-sm hover:bg-gray-300 transition shadow-sm"
+            className="absolute top-8 right-8 bg-white border border-gray-400 px-6 py-1.5 rounded text-sm font-bold hover:bg-gray-100 transition shadow-sm"
           >
             Log Out
           </button>
@@ -137,60 +155,60 @@ export default function ProfilePage() {
           <hr className="border-gray-300 mb-8" />
 
           {user.role === 'admin' ? (
-            <div className="flex justify-center items-center gap-10 mt-12">
+            <div className="flex flex-col md:flex-row justify-center items-center gap-6 mt-12">
               <Link href="/admin/reservations">
-                <button className="bg-white border-2 border-black rounded-xl px-12 py-6 text-gray-500 font-bold text-xl hover:bg-gray-50 transition min-w-60 shadow-sm">
+                <button className="bg-white border-2 border-black rounded-xl px-12 py-6 text-gray-700 font-bold text-xl hover:bg-gray-50 transition min-w-[280px] shadow-sm">
                   Reservation list
                 </button>
               </Link>
               <Link href="/admin/restaurants">
-                <button className="bg-white border-2 border-black rounded-xl px-12 py-6 text-gray-500 font-bold text-xl hover:bg-gray-50 transition min-w-60 shadow-sm">
+                <button className="bg-white border-2 border-black rounded-xl px-12 py-6 text-gray-700 font-bold text-xl hover:bg-gray-50 transition min-w-[280px] shadow-sm">
                   Restaurant list
                 </button>
               </Link>
             </div>
           ) : (
             <div className="w-full">
-              <h3 className="font-bold mb-4 text-xl">Reservation list (Max 3)</h3>
-              <div className="bg-white border border-gray-300 rounded-lg h-70 overflow-y-auto p-4 shadow-inner">
+              <h3 className="font-bold mb-4 text-xl">My Reservations (Max 3)</h3>
+              <div className="bg-white border border-gray-300 rounded-lg max-h-[400px] overflow-y-auto p-4 shadow-inner">
                 {reservations.length > 0 ? reservations.map((res) => (
-                  <div key={res.id} className="flex justify-between items-center bg-[#F9F9F9] p-4 border border-gray-200 rounded mb-4 shadow-sm">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-lg">{res.restaurant}</span>
-                      <span className="text-sm text-gray-500">User: {user.name}</span>
+                  <div key={res.id} className="flex flex-col sm:flex-row justify-between items-center bg-[#F9F9F9] p-5 border border-gray-200 rounded-lg mb-4 shadow-sm gap-4">
+                    <div className="flex flex-col text-center sm:text-left">
+                      <span className="font-bold text-xl text-blue-700">{res.restaurant}</span>
+                      <span className="text-sm text-gray-500 italic">Reserved for: {user.name}</span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       {res.isEditing ? (
-                        <TimePickerDropdown 
-                          initialTime={res.time} 
-                          onTimeChange={(newTime) => handleTimeUpdate(res.id, newTime)} 
+                        <TimePickerDropdown
+                          initialTime={res.time}
+                          onTimeChange={(newTime) => handleTimeUpdate(res.id, newTime)}
                         />
                       ) : (
-                        <div className="bg-white border border-gray-300 px-4 py-2 rounded font-medium shadow-sm">
+                        <div className="bg-white border border-gray-300 px-5 py-2.5 rounded-lg font-bold shadow-sm text-blue-600">
                           {res.time}
                         </div>
                       )}
 
-                      <button 
+                      <button
                         onClick={() => handleEditToggle(res.id, res.isEditing, res.time)}
-                        className={`border border-black px-8 py-2 font-bold transition rounded ${res.isEditing ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}
+                        className={`px-8 py-2.5 font-bold transition rounded-lg border-2 ${res.isEditing ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}
                       >
                         {res.isEditing ? "Save" : "Edit"}
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(res.id)}
-                        className="border border-black px-8 py-2 bg-white font-bold hover:bg-red-50 transition rounded"
+                        className="px-8 py-2.5 bg-white border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition rounded-lg"
                       >
                         Delete
                       </button>
                     </div>
                   </div>
                 )) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">No reservations yet</div>
+                  <div className="py-20 text-center text-gray-400 font-medium">No reservations found</div>
                 )}
               </div>
-              <p className="text-[11px] text-gray-400 mt-2 italic font-medium">Click Edit button first to edit time</p>
+              <p className="text-[12px] text-gray-500 mt-3 italic">* To change the time, click "Edit", select new time, and click "Save".</p>
             </div>
           )}
         </div>
@@ -199,9 +217,7 @@ export default function ProfilePage() {
   );
 }
 
-// Keep your TimePickerDropdown exactly as it was below...
-
-/* --- CUSTOM DROPDOWN COMPONENT --- */
+/* --- CUSTOM DROPDOWN COMPONENT (คงเดิมแต่แต่งสวยขึ้น) --- */
 function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string, onTimeChange: (time: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [hour, setHour] = useState(initialTime.split(':')[0]);
@@ -213,33 +229,33 @@ function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string
 
   useEffect(() => {
     onTimeChange(`${hour}:${minute} ${ampm}`);
-  }, [hour, minute, ampm]);
+  }, [hour, minute, ampm, onTimeChange]);
 
   return (
     <div className="relative">
-      <div 
+      <div
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-white border-2 border-blue-400 px-3 py-1.5 rounded cursor-pointer flex items-center gap-2 text-black font-medium"
+        className="bg-white border-2 border-[#5C5CFF] px-4 py-2 rounded-lg cursor-pointer flex items-center gap-3 text-black font-bold shadow-sm hover:border-blue-700 transition"
       >
         <span>{hour}:{minute} {ampm}</span>
-        <span className="text-[10px] text-gray-400">▼</span>
+        <span className={`text-[10px] transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
       </div>
 
       {isOpen && (
-        <div className="absolute top-full mt-1 bg-white border border-gray-300 shadow-2xl rounded flex z-50 h-40 overflow-hidden">
-          <div className="overflow-y-auto w-10 border-r border-gray-100 scrollbar-hide">
+        <div className="absolute top-full mt-2 bg-white border border-gray-300 shadow-2xl rounded-xl flex z-50 h-48 overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1">
             {hours.map(h => (
-              <div key={h} onClick={() => setHour(h)} className={`p-1.5 text-center cursor-pointer hover:bg-blue-50 ${hour === h ? 'bg-gray-200 font-bold' : ''}`}>{h}</div>
+              <div key={h} onClick={() => setHour(h)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${hour === h ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}>{h}</div>
             ))}
           </div>
-          <div className="overflow-y-auto w-10 border-r border-gray-100 scrollbar-hide">
+          <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1">
             {minutes.map(m => (
-              <div key={m} onClick={() => setMinute(m)} className={`p-1.5 text-center cursor-pointer hover:bg-blue-50 ${minute === m ? 'bg-gray-200 font-bold' : ''}`}>{m}</div>
+              <div key={m} onClick={() => setMinute(m)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${minute === m ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}>{m}</div>
             ))}
           </div>
-          <div className="w-14 flex flex-col">
+          <div className="w-16 flex flex-col py-1">
             {['AM', 'PM'].map(p => (
-              <div key={p} onClick={() => setAmpm(p)} className={`p-1.5 text-center cursor-pointer hover:bg-blue-50 flex-1 flex items-center justify-center ${ampm === p ? 'bg-gray-200 font-bold' : ''}`}>{p}</div>
+              <div key={p} onClick={() => setAmpm(p)} className={`p-2 text-center cursor-pointer hover:bg-blue-50 flex-1 flex items-center justify-center text-sm font-bold ${ampm === p ? 'bg-[#5C5CFF] text-white' : ''}`}>{p}</div>
             ))}
           </div>
         </div>

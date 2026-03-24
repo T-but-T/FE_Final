@@ -7,18 +7,14 @@ export default function TopMenu() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState("");
   const [userName, setUserName] = useState("");
-  
+
   const router = useRouter();
-  const pathname = usePathname(); // Detects page changes to update login status
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Check localStorage for real auth data
     const token = localStorage.getItem('token');
     const storedRole = localStorage.getItem('role');
-    
-    // Note: In a real app, you'd store the name in localStorage 
-    // or fetch it from /auth/me
-    const storedName = localStorage.getItem('userName') || "User"; 
+    const storedName = localStorage.getItem('userName') || "Guest";
 
     if (token) {
       setIsLoggedIn(true);
@@ -27,7 +23,7 @@ export default function TopMenu() {
     } else {
       setIsLoggedIn(false);
     }
-  }, [pathname]); // Refresh every time the user navigates to a new page
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -35,6 +31,7 @@ export default function TopMenu() {
     localStorage.removeItem('userName');
     setIsLoggedIn(false);
     router.push('/');
+    router.refresh(); // บังคับให้หน้าเว็บอัปเดตสถานะใหม่ทั้งหมด
   };
 
   return (
@@ -43,40 +40,39 @@ export default function TopMenu() {
       {/* 🌟 Left: Logo/Home Link */}
       <Link
         href="/"
-        className="bg-gray-200 text-black px-8 py-2 font-medium text-lg rounded-sm hover:bg-gray-300 transition cursor-pointer"
+        className="bg-gray-200 text-black px-8 py-2 font-bold text-lg rounded-sm hover:bg-gray-300 transition cursor-pointer"
       >
         Main
       </Link>
 
       {/* Right: User Info and Buttons */}
-      <div className="flex items-center gap-6">
-        
-        {/* Real Dynamic Link based on role */}
+      <div className="flex items-center gap-8">
+
         {isLoggedIn && (
-          <Link 
-            href="/profile" 
+          <Link
+            href="/profile"
             className="text-sm font-semibold hover:text-gray-400 transition underline underline-offset-4"
           >
-            {role === "admin" ? "Admin" : "User"}/Info
+            Info
           </Link>
         )}
 
-        <span className="text-sm text-gray-300">
-          {isLoggedIn && `User: ${userName}`}
-        </span>
+        {isLoggedIn && (
+          <span className="text-sm text-gray-300 font-medium">
+            {role === "admin" ? `Admin: ${userName}` : `User: ${userName}`}
+          </span>
+        )}
 
         {isLoggedIn ? (
           <button
             onClick={handleLogout}
-            className="bg-gray-200 text-black px-4 py-1 text-sm hover:bg-white transition rounded-sm font-medium"
+            className="text-sm font-semibold text-gray-200 hover:text-white transition underline underline-offset-4 cursor-pointer"
           >
             Log out
           </button>
         ) : (
-          <Link href="/login">
-            <button className="bg-gray-200 text-black px-4 py-1 text-sm hover:bg-white transition rounded-sm font-medium">
-              Sign up/Log in
-            </button>
+          <Link href="/login" className="text-sm font-semibold hover:text-gray-400 transition underline underline-offset-4">
+            Sign up/Log in
           </Link>
         )}
       </div>
