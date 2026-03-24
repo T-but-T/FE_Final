@@ -38,63 +38,89 @@ export default function AdminRestaurants() {
   };
 
   const handleEditToggle = async (id: string, currentIsEditing: boolean) => {
-    if (currentIsEditing) {
-      const token = localStorage.getItem('token');
-      const shopToUpdate = restaurants.find(r => r._id === id || r.id === id);
-      
-      try {
-        const response = await fetch(`http://localhost:5000/api/v1/restaurants/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-          },
-          body: JSON.stringify({
-            name: shopToUpdate.name,
-            address: shopToUpdate.address,
-            tel: shopToUpdate.tel,
-            openTime: shopToUpdate.openTime,
-            closeTime: shopToUpdate.closeTime,
-            description: shopToUpdate.description
-          }),
-        });
+  const shopToUpdate = restaurants.find(r => (r._id === id || r.id === id));
 
-        if (!response.ok) throw new Error('Update failed');
-        alert("Update Successful!");
-      } catch (error) {
-        console.error(error);
-        alert("Error updating restaurant");
-        return;
-      }
+  if (currentIsEditing) {
+    const token = localStorage.getItem('token');
+    
+    // Determine if we are Creating (POST) or Updating (PUT)
+    const isNew = !shopToUpdate._id; 
+    const url = isNew 
+      ? 'http://localhost:5000/api/v1/restaurants' 
+      : `http://localhost:5000/api/v1/restaurants/${id}`;
+    const method = isNew ? 'POST' : 'PUT';
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          name: shopToUpdate.name,
+          address: shopToUpdate.address,
+          district: shopToUpdate.district || "Watthana", // Required
+          province: shopToUpdate.province || "Bangkok", // Required
+          postalcode: shopToUpdate.postalcode || "10110", // Required
+          tel: shopToUpdate.tel,
+          region: shopToUpdate.region || "Bangkok", // Required
+          openTime: shopToUpdate.openTime,
+          closeTime: shopToUpdate.closeTime,
+          description: shopToUpdate.description
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Operation failed');
+
+      alert(isNew ? "Created Successfully!" : "Update Successful!");
+      
+      // Refresh to get the real MongoDB _id and updated state
+      window.location.reload(); 
+      return;
+    } catch (error: any) {
+      console.error(error);
+      alert(`Error: ${error.message}`);
+      return;
     }
-    setRestaurants(restaurants.map(r => (r._id === id || r.id === id) ? { ...r, isEditing: !currentIsEditing } : r));
-  };
+  }
+  
+  setRestaurants(restaurants.map(r => (r._id === id || r.id === id) ? { ...r, isEditing: !currentIsEditing } : r));
+};
 
   const handleChange = (id: string, field: string, value: string) => {
     setRestaurants(restaurants.map(r => (r._id === id || r.id === id) ? { ...r, [field]: value } : r));
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this restaurant?")) {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5000/api/v1/restaurants/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+  const shopToDelete = restaurants.find(r => r._id === id || r.id === id);
+  
+  // If it's a temp entry not yet saved to DB, just remove from UI
+  if (!shopToDelete?._id) {
+    setRestaurants(restaurants.filter(r => r.id !== id));
+    return;
+  }
 
-        if (response.ok) {
-          setRestaurants(restaurants.filter(r => r._id !== id && r.id !== id));
-          alert("Deleted successfully");
-        } else {
-          throw new Error('Delete failed');
-        }
-      } catch (error) {
-        console.error(error);
-        alert("Could not delete restaurant");
+  if (window.confirm("Are you sure you want to delete this restaurant?")) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/v1/restaurants/${shopToDelete._id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setRestaurants(restaurants.filter(r => r._id !== shopToDelete._id));
+        alert("Deleted successfully");
+      } else {
+        throw new Error('Delete failed');
       }
+    } catch (error) {
+      alert("Could not delete restaurant");
     }
-  };
+  }
+};
 
   if (loading) return <div className="p-24 text-center">Loading Admin Panel...</div>;
 
@@ -114,7 +140,7 @@ export default function AdminRestaurants() {
             </button>
           </div>
           
-          <div className="bg-white border border-gray-300 rounded-lg h-[500px] overflow-y-auto p-8 shadow-inner">
+          <div className="bg-white border border-gray-300 rounded-lg h-125 overflow-y-auto p-8 shadow-inner">
             {restaurants.map((shop) => {
               const shopId = shop._id || shop.id;
               return (
