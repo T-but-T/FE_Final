@@ -198,8 +198,6 @@ export default function ReservationPage({ params }: PageProps) {
                 {restaurant.tel}
               </div>
             </div>
-
-            {/* Added Operating Hours to match your backend fields */}
             <div className="flex items-start gap-2">
               <span className="text-lg">🕒</span>
               <div>
