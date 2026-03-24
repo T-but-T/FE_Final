@@ -41,10 +41,7 @@ export default function LoginPage() {
           const profileData = await profileRes.json();
 
           if (profileData.success) {
-            // 🌟 บันทึกชื่อจริงๆ ที่ได้จาก DB (เช่น "สมชาย", "Natchanon")
             localStorage.setItem('userName', profileData.data.name);
-
-            // 🌟 และอย่าลืมอัปเดต Role ให้ตรงกับที่ DB บอกมาด้วย!
             localStorage.setItem('role', profileData.data.role);
           }
         } catch (profileErr) {
