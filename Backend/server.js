@@ -13,7 +13,10 @@ dotenv.config({path:'./config/config.env'});
 connectDB();
 
 const app=express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://your-app.vercel.app'],
+  credentials: true
+}));
 
 app.set('query parser','extended');
 app.use(express.json());
