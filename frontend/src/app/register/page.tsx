@@ -1,93 +1,132 @@
-'use client'
+'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TopMenu from '@/components/TopMenu';
 
 export default function RegisterPage() {
-  // สร้าง State มารับค่าทั้ง 4 ช่อง
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tel, setTel] = useState('');
+  const [error, setError] = useState(''); // State สำหรับเก็บข้อความ Error
+  const router = useRouter();
 
-  const handleRegister = (e: React.FormEvent) => {
+  // ดึง API URL จาก env (ให้เหมือนหน้าอื่นๆ)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // จำลองการยิงข้อมูลไปสมัครสมาชิก (รอกรอก API Backend จริง)
-    alert(`Registering user:\nName: ${name}\nEmail: ${email}\nPassword: ${password}\nTel: ${tel}`);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          tel,
+          role: 'user' // กำหนด role เริ่มต้นเป็น user
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // สมัครสำเร็จ! ส่งไปหน้า Login ทันที
+        alert('Registration successful! Please login.');
+        router.push('/login');
+      } else {
+        // ถ้าสมัครไม่สำเร็จ (เช่น Email ซ้ำ) ให้โชว์ Error
+        setError(data.message || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Register error:', err);
+      setError('Connection error. Is the backend running?');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
+    <div className="min-h-screen bg-white text-black flex flex-col font-sans">
       <TopMenu />
 
-      {/* Main Content: จัดให้อยู่กึ่งกลางหน้าจอ */}
       <main className="grow flex items-center justify-center p-6 pt-24">
+        {/* กล่องดีไซน์ใหม่ให้เข้ากับหน้า Login */}
+        <div className="bg-[#F3F4F6] w-full max-w-xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-2xl shadow-xl border border-gray-200">
 
-        {/* กล่องสีเทาตรงกลาง (ใช้คลาสเดียวกับหน้า Login เลยเพื่อให้ขนาดเท่ากัน) */}
-        <div className="bg-[#D9D9D9] w-full max-w-2xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-sm">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
 
-          <form onSubmit={handleRegister} className="w-full flex flex-col gap-6 items-center">
+          <form onSubmit={handleRegister} className="w-full flex flex-col gap-5 items-center">
 
-            {/* 1. ช่องกรอก Name */}
+            {/* ส่วนแสดง Error */}
+            {error && (
+              <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
+                {error}
+              </div>
+            )}
+
             <input
               type="text"
-              placeholder="Name"
+              placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full bg-white px-6 py-4 text-lg border border-transparent focus:border-gray-400 outline-none shadow-sm"
+              className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* 2. ช่องกรอก Email */}
             <input
               type="email"
-              placeholder="Email"
+              placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-white px-6 py-4 text-lg border border-transparent focus:border-gray-400 outline-none shadow-sm"
+              className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* 3. ช่องกรอก Password */}
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Password (Min 6 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-white px-6 py-4 text-lg border border-transparent focus:border-gray-400 outline-none shadow-sm"
+              className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* 4. ช่องกรอก Tel */}
             <input
               type="tel"
-              placeholder="Tel"
+              placeholder="Telephone Number"
               value={tel}
               onChange={(e) => setTel(e.target.value)}
               required
-              className="w-full bg-white px-6 py-4 text-lg border border-transparent focus:border-gray-400 outline-none shadow-sm"
+              className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* ปุ่ม Sign up สีน้ำเงิน */}
+            {/* ปุ่ม Sign up สีฟ้าเทพๆ */}
             <button
               type="submit"
-              className="bg-blue-600 text-white px-16 py-3 mt-2 text-lg hover:bg-blue-700 transition shadow-sm w-fit"
+              className="w-full bg-[#5C5CFF] text-white py-4 rounded-xl text-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg mt-2"
             >
-              Sign up
+              Sign Up
             </button>
 
           </form>
 
-          {/* แถมลิงก์กลับไปหน้า Login ให้ด้วย (เผื่อผู้ใช้มีบัญชีอยู่แล้ว) */}
-          <div className="mt-2 text-sm text-gray-700">
-            Already have an account?{' '}
-            <Link href="/login" className="hover:underline hover:text-black transition font-medium">
-              Log in
+          {/* ลิงก์กลับไปหน้า Login */}
+          <div className="text-gray-600 text-sm mt-4 flex gap-2 items-center">
+            <span>Already have an account?</span>
+            <Link
+              href="/login"
+              className="text-[#5C5CFF] font-bold hover:underline hover:text-blue-800 transition-colors"
+            >
+              Log In
             </Link>
           </div>
 
         </div>
-
       </main>
     </div>
   );
