@@ -1,7 +1,6 @@
 "use client";
-import TimePickerDropdown from './TimePickerDropdown';
+import TimePickerDropdown from "./TimePickerDropdown";
 
-// กำหนด Type ของข้อมูลที่รับเข้ามา
 interface ReservationItemProps {
   res: any;
   userName: string;
@@ -19,18 +18,19 @@ export default function ReservationItem({
   onCancel,
   onSave,
   onDelete,
-  onTimeUpdate
+  onTimeUpdate,
 }: ReservationItemProps) {
   return (
     <div className="relative flex flex-col sm:flex-row justify-between items-center bg-[#F9F9F9] p-5 border border-gray-200 rounded-lg mb-4 shadow-sm gap-4">
-      
-      {/* ฝั่งซ้าย: ชื่อร้านและชื่อคนจอง */}
       <div className="flex flex-col text-center sm:text-left">
-        <span className="font-bold text-xl text-blue-700">{res.restaurant}</span>
-        <span className="text-sm text-gray-500 italic">Reserved for: {userName}</span>
+        <span className="font-bold text-xl text-blue-700">
+          {res.restaurant}
+        </span>
+        <span className="text-sm text-gray-500 italic">
+          Reserved for: {userName}
+        </span>
       </div>
 
-      {/* ฝั่งขวา: ส่วนจัดการเวลาและปุ่ม */}
       <div className="flex flex-wrap items-center justify-center gap-3 relative">
         {res.isEditing ? (
           <>

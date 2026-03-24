@@ -1,67 +1,64 @@
-'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import TopMenu from '@/components/TopMenu';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import TopMenu from "@/components/TopMenu";
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [tel, setTel] = useState('');
-  const [error, setError] = useState('');
-  
-  // 🌟 เพิ่ม State เพื่อเช็คว่ากำลังโหลดอยู่ไหม (ป้องกันคนกดปุ่มเบิ้ล)
-  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [tel, setTel] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); 
+    setError("");
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return; 
-    }
-
-    if (tel.length < 9) {
-      setError('Please enter a valid telephone number.');
+      setError("Password must be at least 6 characters long.");
       return;
     }
 
-    // 🌟 เริ่มล็อกปุ่ม
+    if (tel.length < 9) {
+      setError("Please enter a valid telephone number.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name,
           email,
           password,
           tel,
-          role: 'user'
+          role: "user",
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        alert('Registration successful! Please login.');
-        router.push('/login');
+        alert("Registration successful! Please login.");
+        router.push("/login");
       } else {
-        setError(data.message || 'Registration failed. Please try again.');
+        setError(data.message || "Registration failed. Please try again.");
       }
     } catch (err) {
-      console.error('Register error:', err);
-      setError('Connection error. Is the backend running?');
+      console.error("Register error:", err);
+      setError("Connection error. Is the backend running?");
     } finally {
-      // 🌟 คืนค่าปุ่มให้กดได้ใหม่ ไม่ว่าจะสมัครผ่านหรือพัง
       setIsSubmitting(false);
     }
   };
@@ -72,11 +69,14 @@ export default function RegisterPage() {
 
       <main className="grow flex items-center justify-center p-6 pt-24">
         <div className="bg-[#F3F4F6] w-full max-w-xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-2xl shadow-xl border border-gray-200">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Create Account
+          </h1>
 
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
-
-          <form onSubmit={handleRegister} className="w-full flex flex-col gap-5 items-center">
-
+          <form
+            onSubmit={handleRegister}
+            className="w-full flex flex-col gap-5 items-center"
+          >
             {error && (
               <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200 animate-shake">
                 {error}
@@ -120,17 +120,17 @@ export default function RegisterPage() {
               className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
-            {/* 🌟 อัปเดตปุ่มให้เปลี่ยนสถานะตอนกำลังโหลด */}
             <button
               type="submit"
-              disabled={isSubmitting} // ล็อกปุ่ม
+              disabled={isSubmitting}
               className={`w-full text-white py-4 rounded-xl text-xl font-bold transition-all shadow-lg mt-2 ${
-                isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-[#5C5CFF] hover:bg-blue-700 active:scale-95'
+                isSubmitting
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-[#5C5CFF] hover:bg-blue-700 active:scale-95"
               }`}
             >
-              {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+              {isSubmitting ? "Creating Account..." : "Sign Up"}
             </button>
-
           </form>
 
           <div className="text-gray-600 text-sm mt-4 flex gap-2 items-center">
@@ -142,7 +142,6 @@ export default function RegisterPage() {
               Log In
             </Link>
           </div>
-
         </div>
       </main>
     </div>

@@ -3,7 +3,9 @@ export default function RestaurantInfo({ restaurant }: { restaurant: any }) {
 
   return (
     <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm mt-4">
-      <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">About this Restaurant</h3>
+      <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">
+        About this Restaurant
+      </h3>
       <p className="text-gray-700 leading-relaxed mb-6">
         {restaurant.description || "No description available."}
       </p>
@@ -13,7 +15,8 @@ export default function RestaurantInfo({ restaurant }: { restaurant: any }) {
           <span className="text-lg">📍</span>
           <div>
             <span className="font-bold text-gray-900 block">Address</span>
-            {restaurant.address} {restaurant.district} {restaurant.province} {restaurant.postalcode}
+            {restaurant.address} {restaurant.district} {restaurant.province}{" "}
+            {restaurant.postalcode}
           </div>
         </div>
 
@@ -27,7 +30,9 @@ export default function RestaurantInfo({ restaurant }: { restaurant: any }) {
         <div className="flex items-start gap-2">
           <span className="text-lg">🕒</span>
           <div>
-            <span className="font-bold text-gray-900 block">Operating Hours</span>
+            <span className="font-bold text-gray-900 block">
+              Operating Hours
+            </span>
             {restaurant.openTime} - {restaurant.closeTime}
           </div>
         </div>

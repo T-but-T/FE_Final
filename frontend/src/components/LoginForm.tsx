@@ -1,24 +1,25 @@
 "use client";
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -26,38 +27,37 @@ export default function LoginForm() {
 
       if (data.success) {
         const token = data.token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('role', data.role || 'user');
+        localStorage.setItem("token", token);
+        localStorage.setItem("role", data.role || "user");
 
         try {
           const profileRes = await fetch(`${API_URL}/auth/me`, {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` }
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
           });
           const profileData = await profileRes.json();
 
           if (profileData.success) {
-            localStorage.setItem('userName', profileData.data.name);
-            localStorage.setItem('role', profileData.data.role);
+            localStorage.setItem("userName", profileData.data.name);
+            localStorage.setItem("role", profileData.data.role);
           }
         } catch (profileErr) {
-          console.error('Fetch profile error:', profileErr);
-          localStorage.setItem('userName', 'Member');
+          console.error("Fetch profile error:", profileErr);
+          localStorage.setItem("userName", "Member");
         }
 
-        router.push('/');
+        router.push("/");
         router.refresh();
 
         setTimeout(() => {
           window.location.href = "/";
         }, 100);
-
       } else {
-        setError(data.message || 'Invalid email or password');
+        setError(data.message || "Invalid email or password");
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError('Internal server error. Please try again later.');
+      console.error("Login error:", err);
+      setError("Internal server error. Please try again later.");
     }
   };
 
@@ -65,7 +65,10 @@ export default function LoginForm() {
     <div className="bg-[#F3F4F6] w-full max-w-xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-2xl shadow-xl border border-gray-200">
       <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
 
-      <form onSubmit={handleLogin} className="w-full flex flex-col gap-5 items-center">
+      <form
+        onSubmit={handleLogin}
+        className="w-full flex flex-col gap-5 items-center"
+      >
         {error && (
           <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
             {error}
