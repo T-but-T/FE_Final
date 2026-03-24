@@ -36,7 +36,7 @@ export default function ListPage() {
             <div key={venue.id} className="flex flex-col md:flex-row gap-8 w-full border-b border-gray-300 pb-10">
 
               <div className="w-full md:w-1/3 flex flex-col">
-                <div className="relative w-full aspect-[4/3] rounded-sm mb-4 overflow-hidden bg-gray-200">
+                <div className="relative w-full aspect-4/3 rounded-sm mb-4 overflow-hidden bg-gray-200">
                   <Image 
                     src={venue.image || '/img/default-restaurant.jpg'} 
                     alt={venue.name}
