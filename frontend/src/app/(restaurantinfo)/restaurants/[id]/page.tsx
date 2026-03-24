@@ -30,7 +30,8 @@ export default function ReservationPage({ params }: PageProps) {
     // 🌟 2. ดึงข้อมูลรายละเอียดร้านอาหารจาก API
     const fetchRestaurantDetail = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurant/${id}`);
+        // เติม s หลังคำว่า restaurant ให้เป็น restaurants
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}`);
         const json = await response.json();
 
         if (json.success) {

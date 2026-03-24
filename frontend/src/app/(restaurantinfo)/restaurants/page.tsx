@@ -56,7 +56,7 @@ export default function ListPage() {
                 </div>
 
                 
-                <Link href={`/restaurant/${venue.id}`}>
+                <Link href={`/restaurants/${venue.id}`}>
                   <button className="bg-[#5C5CFF] hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md transition duration-300 w-fit text-sm shadow-sm">
                     Click to reserve
                   </button>
@@ -77,7 +77,6 @@ export default function ListPage() {
                   <span className="w-40 font-medium shrink-0 whitespace-nowrap">Telephone:</span>
                   <span className="text-gray-600">{venue.tel}</span>
                 </div>
-                {/* ถ้ามีฟิลด์เวลาใน DB ให้ใส่เพิ่มตรงนี้ */}
               </div>
 
             </div>
