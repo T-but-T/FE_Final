@@ -48,7 +48,6 @@ export default function TopMenu() {
       {/* Right: User Info and Buttons */}
       <div className="flex items-center gap-8">
 
-        {/* 🌟 1. เปลี่ยนเป็นคำว่า Info อย่างเดียว */}
         {isLoggedIn && (
           <Link
             href="/profile"
@@ -58,14 +57,12 @@ export default function TopMenu() {
           </Link>
         )}
 
-        {/* 🌟 2. แสดง User: หรือ Admin: ตาม Role */}
         {isLoggedIn && (
           <span className="text-sm text-gray-300 font-medium">
             {role === "admin" ? `Admin: ${userName}` : `User: ${userName}`}
           </span>
         )}
 
-        {/* 🌟 3. เปลี่ยนปุ่ม Logout เป็น Text สไตล์เดียวกับเพื่อนๆ */}
         {isLoggedIn ? (
           <button
             onClick={handleLogout}
