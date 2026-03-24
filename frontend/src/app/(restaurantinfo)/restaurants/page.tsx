@@ -56,7 +56,7 @@ export default function ListPage() {
                 </div>
 
                 
-                <Link href={`/restaurant/${venue.id}`}>
+                <Link href={`/restaurants/${venue.id}`}>
                   <button className="bg-[#5C5CFF] hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md transition duration-300 w-fit text-sm shadow-sm">
                     Click to reserve
                   </button>
