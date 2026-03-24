@@ -12,6 +12,30 @@ export default function ReservationPage({ params }: PageProps) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const handleReservation = () => {
+  // 1. Basic validation to ensure time is selected
+  if (!reserveTime) {
+    alert("Please select a time.");
+    return;
+  }
+
+  // 2. Check if the selected time is within operating hours
+  // Lexicographical comparison works for "HH:mm" strings
+  const isOpening = reserveTime >= restaurant.openTime;
+  const isClosing = reserveTime <= restaurant.closeTime;
+
+  if (isOpening && isClosing) {
+    // Proceed with reservation
+    alert(`Reserved for ${reserveDate} at ${reserveTime}`);
+    // Your reservation API call would go here
+  } else {
+    // Show error if outside hours
+    alert(
+      `Sorry, this restaurant is only open between ${restaurant.openTime} and ${restaurant.closeTime}.`
+    );
+  }
+};
+
   // States for Booking and Rating
   const [reserveDate, setReserveDate] = useState("");
   const [reserveTime, setReserveTime] = useState("");
@@ -112,7 +136,7 @@ export default function ReservationPage({ params }: PageProps) {
               </div>
 
               <button
-                onClick={() => alert(`Reserved for ${reserveDate} at ${reserveTime}`)}
+                onClick={handleReservation}
                 className="w-full bg-[#5C5CFF] text-white py-3 rounded-md font-bold text-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md mt-2"
               >
                 RESERVE NOW
@@ -124,14 +148,36 @@ export default function ReservationPage({ params }: PageProps) {
         <hr className="my-4 border-gray-200" />
 
         {/* About Section */}
-        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">About this Restaurant</h3>
-          <p className="text-gray-700 leading-relaxed mb-4">{restaurant.description || "No description available."}</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div><span className="font-bold text-gray-900">📍 Address:</span> {restaurant.address}</div>
-            <div><span className="font-bold text-gray-900">📞 Telephone:</span> {restaurant.tel}</div>
-          </div>
+      <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col gap-4 text-gray-700 text-sm md:text-base">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 border-b pb-2">About this Restaurant</h3>
+        
+        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
+          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">📍 Address:</span>
+          <span className="text-gray-600">
+            {restaurant.address} {restaurant.district} {restaurant.province}
+          </span>
         </div>
+
+        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
+          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">ℹ️ Information:</span>
+          <span className="text-gray-600">
+            {restaurant.description || 'No information available'}
+          </span>
+        </div>
+
+        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
+          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">📞 Telephone:</span>
+          <span className="text-gray-600">{restaurant.tel}</span>
+        </div>
+
+        {/* New Open-Close Time Section */}
+        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
+          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">🕒 Open-Close:</span>
+          <span className="text-gray-600">
+            {restaurant.openTime} - {restaurant.closeTime}
+          </span>
+        </div>
+      </div>
 
         {/* Review Rating Section */}
         <div className="mt-6 flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200">
