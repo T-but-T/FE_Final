@@ -11,7 +11,11 @@ exports.getReservations = async (req, res, next) => {
     query = Reservation.find().populate({
       path: 'restaurant',
       select: 'name address tel'
-    });
+    })
+    .populate({
+        path: 'user',
+        select: 'name email'
+      })
   } else {
     query = Reservation.find({ user: req.user.id }).populate({
       path: 'restaurant',
