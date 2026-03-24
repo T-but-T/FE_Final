@@ -51,6 +51,40 @@ export default function ReservationPage({ params }: PageProps) {
   if (loading) return <div className="p-24 text-center mt-20 text-xl font-sans">Loading restaurant details...</div>;
   if (!restaurant) return <div className="p-24 text-center mt-20 text-xl text-red-500 font-sans">Restaurant not found.</div>;
 
+  const handleReservation = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      alert("Please login first to make a reservation");
+      return;
+    }
+    const bookingDate = new Date(`${reserveDate}T${reserveTime}:00`).toISOString();
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}/reservations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        bookingDate: bookingDate
+      }),
+    });
+
+    const json = await response.json();
+
+    if (response.ok) {
+      alert("Reservation Successful!");
+    } else {
+      alert(json.message || "Failed to make a reservation");
+    }
+  } catch (error) {
+    console.error('Reservation Error:', error);
+    alert("An error occurred. Please try again.");
+  }
+};
+
   return (
     <div className="min-h-screen bg-white text-black font-sans">
       <TopMenu />
@@ -112,10 +146,10 @@ export default function ReservationPage({ params }: PageProps) {
               </div>
 
               <button
-                onClick={() => alert(`Reserved for ${reserveDate} at ${reserveTime}`)}
-                className="w-full bg-[#5C5CFF] text-white py-3 rounded-md font-bold text-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md mt-2"
+              onClick={handleReservation}
+              className="w-full bg-[#5C5CFF] text-white py-3 rounded-md font-bold text-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md mt-2"
               >
-                RESERVE NOW
+              RESERVE NOW
               </button>
             </div>
           </div>
