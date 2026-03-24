@@ -29,6 +29,7 @@ export default function AdminRestaurants() {
       name: "New Restaurant",
       address: "",
       description: "",
+      region: "Bangkok",
       tel: "",
       openTime: "",
       closeTime: "",
@@ -161,23 +162,32 @@ export default function AdminRestaurants() {
                     )}
                     
                     {shop.isEditing ? (
-                      <div className="grid grid-cols-1 gap-2 text-sm">
-                        <input className="border p-2 rounded bg-white" value={shop.address} onChange={(e) => handleChange(shopId, 'address', e.target.value)} placeholder="Address" />
-                        <input className="border p-2 rounded bg-white" value={shop.description} onChange={(e) => handleChange(shopId, 'description', e.target.value)} placeholder="Information" />
-                        <input className="border p-2 rounded bg-white" value={shop.tel} onChange={(e) => handleChange(shopId, 'tel', e.target.value)} placeholder="Telephone" />
-                        <div className="flex gap-2">
-                          <input className="border p-2 rounded bg-white w-1/2" value={shop.openTime} onChange={(e) => handleChange(shopId, 'openTime', e.target.value)} placeholder="Open Time" />
-                          <input className="border p-2 rounded bg-white w-1/2" value={shop.closeTime} onChange={(e) => handleChange(shopId, 'closeTime', e.target.value)} placeholder="Close Time" />
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                            <input className="border p-2 rounded bg-white" value={shop.address} onChange={(e) => handleChange(shopId, 'address', e.target.value)} placeholder="Address" />
+                            <input className="border p-2 rounded bg-white" value={shop.description} onChange={(e) => handleChange(shopId, 'description', e.target.value)} placeholder="Information" />
+                            <input className="border p-2 rounded bg-white" value={shop.tel} onChange={(e) => handleChange(shopId, 'tel', e.target.value)} placeholder="Telephone" />
+                            
+                            <div className="grid grid-cols-3 gap-2">
+                            <input className="border p-2 rounded bg-white" value={shop.district || ""} onChange={(e) => handleChange(shopId, 'district', e.target.value)} placeholder="District" />
+                            <input className="border p-2 rounded bg-white" value={shop.province || ""} onChange={(e) => handleChange(shopId, 'province', e.target.value)} placeholder="Province" />
+                            <input className="border p-2 rounded bg-white" value={shop.postalcode || ""} onChange={(e) => handleChange(shopId, 'postalcode', e.target.value)} placeholder="Postal Code" />
+                            </div>
+
+                            <div className="flex gap-2">
+                            <input className="border p-2 rounded bg-white w-1/2" value={shop.openTime} onChange={(e) => handleChange(shopId, 'openTime', e.target.value)} placeholder="Open Time" />
+                            <input className="border p-2 rounded bg-white w-1/2" value={shop.closeTime} onChange={(e) => handleChange(shopId, 'closeTime', e.target.value)} placeholder="Close Time" />
+                            </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-md text-gray-700 space-y-1">
-                        <p><span className="font-bold text-black">Address:</span> {shop.address} {shop.district} {shop.province}</p>
-                        <p><span className="font-bold text-black">Information:</span> {shop.description}</p>
-                        <p><span className="font-bold text-black">Telephone:</span> {shop.tel}</p>
-                        <p><span className="font-bold text-black">Time:</span> {shop.openTime} - {shop.closeTime}</p>
-                      </div>
-                    )}
+                        ) : (
+                        <div className="text-md text-gray-700 space-y-1">
+                            <p><span className="font-bold text-black">Address:</span> {shop.address} {shop.district} {shop.province} {shop.postalcode}</p>
+                            {/* Region is still displayed here even if it's not in the edit form */}
+                            <p><span className="font-bold text-black">Region:</span> {shop.region || "Bangkok"}</p>
+                            <p><span className="font-bold text-black">Information:</span> {shop.description}</p>
+                            <p><span className="font-bold text-black">Telephone:</span> {shop.tel}</p>
+                            <p><span className="font-bold text-black">Time:</span> {shop.openTime} - {shop.closeTime}</p>
+                        </div>
+                        )}
                   </div>
 
                   <div className="flex flex-col justify-center gap-3 w-32">
