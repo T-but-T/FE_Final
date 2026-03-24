@@ -13,7 +13,10 @@ dotenv.config({path:'./config/config.env'});
 connectDB();
 
 const app=express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://restaurant-app-frontend-project.vercel.app'],
+  credentials: true
+}));
 
 app.set('query parser','extended');
 app.use(express.json());
@@ -31,11 +34,18 @@ app.use('/api/v1/restaurants',restaurants);
 app.use('/api/v1/auth',auth);
 app.use('/api/v1/reservations',reservations);
 
-const PORT=process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-const server=app.listen(PORT, console.log('Server running in ', process.env.NODE_ENV,' mode on port ', PORT));
+// Vercel มักจะเซ็ต process.env.NODE_ENV เป็น 'production' 
+// เราจะให้มัน app.listen เฉพาะตอนรันในเครื่องเราครับ
+if (process.env.NODE_ENV !== 'production') {
+  const server = app.listen(PORT, console.log('Server running in ', process.env.NODE_ENV,' mode on port ', PORT));
 
-process.on('unhandledRejection',(err,promise)=>{
-  console.log(`Error: ${err.message}`);
-  server.close(()=>process.exit(1));
-});
+  process.on('unhandledRejection',(err,promise)=>{
+    console.log(`Error: ${err.message}`);
+    server.close(()=>process.exit(1));
+  });
+}
+
+// 🌟 บรรทัดนี้สำคัญมากสำหรับ Vercel
+module.exports = app;

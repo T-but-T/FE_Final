@@ -1,9 +1,16 @@
 'use client'
-import { useState } from 'react';
+import { useState, use } from 'react'; 
 import TopMenu from '@/components/TopMenu';
 
-// 🌟 รับค่า params เป็น id
-export default function ReservationPage({ params }: { params: { id: string } }) {
+// 🌟 1. แยก Type ออกมาประกาศด้านนอก เพื่อป้องกัน Next.js สับสน
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function ReservationPage({ params }: PageProps) {
+
+  // 🌟 2. ใช้ use() แกะค่า id ออกมาจาก Promise (เขียนแบบย่อให้ดูคลีนขึ้น)
+  const { id } = use(params);
 
   const [currentPic, setCurrentPic] = useState(0);
   const mockPictures = ["Picture 1", "Picture 2", "Picture 3"];
@@ -23,9 +30,8 @@ export default function ReservationPage({ params }: { params: { id: string } }) 
 
         {/* Header */}
         <div>
-          {/* 🌟 ดึง params.id มาใช้งาน */}
           <h1 className="text-3xl font-medium mb-2">
-            Restaurant Name {params.id && `(ID: ${params.id})`}
+            Restaurant Name {id && `(ID: ${id})`}
           </h1>
           <div className="flex items-center gap-2 text-xl">
             <div className="text-gray-300 tracking-widest">
