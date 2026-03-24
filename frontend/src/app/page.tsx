@@ -45,7 +45,7 @@ export default function HomePage() {
             Discover the finest culinary gems in town and book your table seamlessly.
           </p>
 
-          <Link href="/restaurants" className="mb-12">
+          <Link href="/list" className="mb-12">
             <button className="bg-[#5C5CFF] text-white px-14 py-5 text-xl font-bold 
                                hover:bg-blue-600 transition-all duration-300 shadow-2xl rounded-full">
               EXPLORE RESTAURANTS
