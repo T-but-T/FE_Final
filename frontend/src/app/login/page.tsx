@@ -39,12 +39,13 @@ export default function LoginPage() {
             headers: { Authorization: `Bearer ${token}` }
           });
           const profileData = await profileRes.json();
-          
+
           if (profileData.success) {
-            // บันทึกชื่อจริงที่ได้จาก Database ลงไป
+            // 🌟 บันทึกชื่อจริงๆ ที่ได้จาก DB (เช่น "สมชาย", "Natchanon")
             localStorage.setItem('userName', profileData.data.name);
-          } else {
-            localStorage.setItem('userName', 'Member');
+
+            // 🌟 และอย่าลืมอัปเดต Role ให้ตรงกับที่ DB บอกมาด้วย!
+            localStorage.setItem('role', profileData.data.role);
           }
         } catch (profileErr) {
           console.error('Fetch profile error:', profileErr);
@@ -54,7 +55,7 @@ export default function LoginPage() {
         // 🌟 Step 3: เคลียร์ทุกอย่างแล้วไปหน้าแรก
         router.push('/');
         router.refresh();
-        
+
         // บังคับเปลี่ยนหน้าเพื่อความชัวร์ในการดึงค่าใหม่
         setTimeout(() => {
           window.location.href = "/";
@@ -75,11 +76,11 @@ export default function LoginPage() {
 
       <main className="grow flex items-center justify-center p-6 pt-24">
         <div className="bg-[#F3F4F6] w-full max-w-xl p-10 md:p-14 flex flex-col items-center gap-6 rounded-2xl shadow-xl border border-gray-200">
-          
+
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
-          
+
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-5 items-center">
-            
+
             {error && (
               <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
                 {error}
