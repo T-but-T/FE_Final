@@ -55,10 +55,16 @@ export default function LoginPage() {
 
           </form>
 
-          {/* ลิงก์ไปหน้า Sign Up */}
-          <Link href="/register" className="text-gray-700 text-sm hover:underline hover:text-black transition mt-2">
-            Sign up link
-          </Link>
+          {/* 🌟 ลิงก์ไปหน้า Sign Up แบบที่นิยมใช้กัน */}
+          <div className="text-gray-600 text-sm mt-4 flex gap-2">
+            <span>Don't have an account?</span>
+            <Link
+              href="/register"
+              className="text-blue-600 font-bold hover:underline hover:text-blue-800 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </div>
 
         </div>
 
