@@ -12,14 +12,13 @@ export default function ReservationPage({ params }: PageProps) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // States for Booking and Rating
   const [reserveDate, setReserveDate] = useState("");
   const [reserveTime, setReserveTime] = useState("");
   const [rating, setRating] = useState(0);
 
   useEffect(() => {
     const now = new Date();
-    
+
     // Set default date to today (YYYY-MM-DD)
     setReserveDate(now.toISOString().split('T')[0]);
 
@@ -52,38 +51,57 @@ export default function ReservationPage({ params }: PageProps) {
   if (!restaurant) return <div className="p-24 text-center mt-20 text-xl text-red-500 font-sans">Restaurant not found.</div>;
 
   const handleReservation = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      alert("Please login first to make a reservation");
-      return;
+    try {
+      const token = localStorage.getItem('token');
+
+      // 1. ตรวจสอบการ Login
+      if (!token) {
+        alert("Please login first to make a reservation");
+        return;
+      }
+
+      // 2. ตรวจสอบเงื่อนไขเวลาเปิด-ปิดร้าน (Business Logic)
+      if (!reserveTime) {
+        alert("Please select a reservation time.");
+        return;
+      }
+
+      const isWithinHours = reserveTime >= restaurant.openTime && reserveTime <= restaurant.closeTime;
+      if (!isWithinHours) {
+        alert(`Sorry, this restaurant is open from ${restaurant.openTime} to ${restaurant.closeTime}`);
+        return;
+      }
+
+      // 3. เตรียมข้อมูลวันที่และเวลาส่งให้ Backend
+      const bookingDateTime = new Date(`${reserveDate}T${reserveTime}:00`).toISOString();
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}/reservations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` //
+        },
+        body: JSON.stringify({
+          bookingDate: bookingDateTime
+        }),
+      });
+
+      const json = await response.json();
+
+      if (response.ok) {
+        alert("Reservation Successful!");
+        // คุณสามารถเพิ่ม window.location.href = '/my-bookings' เพื่อความ UX ที่ดีได้ครับ
+      } else {
+        // แสดงข้อความ Error จริงจาก Backend (เช่น จองเกิน 3 ครั้ง)
+        alert(json.message || "Failed to make a reservation");
+      }
+    } catch (error) {
+      console.error('Reservation Error:', error);
+      alert("Server error. Please try again later.");
     }
-    const bookingDate = new Date(`${reserveDate}T${reserveTime}:00`).toISOString();
+  };
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}/reservations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        bookingDate: bookingDate
-      }),
-    });
 
-    const json = await response.json();
-
-    if (response.ok) {
-      alert("Reservation Successful!");
-    } else {
-      alert(json.message || "Failed to make a reservation");
-    }
-  } catch (error) {
-    console.error('Reservation Error:', error);
-    alert("An error occurred. Please try again.");
-  }
-};
 
   return (
     <div className="min-h-screen bg-white text-black font-sans">
@@ -120,7 +138,7 @@ export default function ReservationPage({ params }: PageProps) {
           <div className="w-full md:w-1/2 flex flex-col justify-center items-center md:items-start">
             <div className="bg-gray-50 p-8 w-full max-w-87.5 flex flex-col items-center gap-4 rounded-xl border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-800">Select Date & Time</h3>
-              
+
               {/* Date Input - Set to trigger Calendar */}
               <div className="bg-white px-4 py-3 w-full flex items-center gap-3 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 transition-all">
                 <span className="text-xl">📅</span>
@@ -129,7 +147,7 @@ export default function ReservationPage({ params }: PageProps) {
                   value={reserveDate}
                   onChange={(e) => setReserveDate(e.target.value)}
                   // This triggers the native calendar picker when clicking the box
-                  onClick={(e) => (e.target as any).showPicker?.()} 
+                  onClick={(e) => (e.target as any).showPicker?.()}
                   className="w-full outline-none bg-transparent text-lg font-medium cursor-pointer"
                 />
               </div>
@@ -146,10 +164,10 @@ export default function ReservationPage({ params }: PageProps) {
               </div>
 
               <button
-              onClick={handleReservation}
-              className="w-full bg-[#5C5CFF] text-white py-3 rounded-md font-bold text-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md mt-2"
+                onClick={handleReservation}
+                className="w-full bg-[#5C5CFF] text-white py-3 rounded-md font-bold text-lg hover:bg-blue-700 active:scale-95 transition-all shadow-md mt-2"
               >
-              RESERVE NOW
+                RESERVE NOW
               </button>
             </div>
           </div>
@@ -160,10 +178,41 @@ export default function ReservationPage({ params }: PageProps) {
         {/* About Section */}
         <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
           <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">About this Restaurant</h3>
-          <p className="text-gray-700 leading-relaxed mb-4">{restaurant.description || "No description available."}</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div><span className="font-bold text-gray-900">📍 Address:</span> {restaurant.address}</div>
-            <div><span className="font-bold text-gray-900">📞 Telephone:</span> {restaurant.tel}</div>
+          <p className="text-gray-700 leading-relaxed mb-6">
+            {restaurant.description || "No description available."}
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4 text-sm text-gray-600">
+            <div className="flex items-start gap-2">
+              <span className="text-lg">📍</span>
+              <div>
+                <span className="font-bold text-gray-900 block">Address</span>
+                {restaurant.address} {restaurant.district} {restaurant.province} {restaurant.postalcode}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <span className="text-lg">📞</span>
+              <div>
+                <span className="font-bold text-gray-900 block">Telephone</span>
+                {restaurant.tel}
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-lg">🕒</span>
+              <div>
+                <span className="font-bold text-gray-900 block">Operating Hours</span>
+                {restaurant.openTime} - {restaurant.closeTime}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <span className="text-lg">🌍</span>
+              <div>
+                <span className="font-bold text-gray-900 block">Region</span>
+                {restaurant.region || "Bangkok"}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -176,9 +225,8 @@ export default function ReservationPage({ params }: PageProps) {
                 <span
                   key={star}
                   onClick={() => setRating(star)}
-                  className={`transition-colors duration-200 ${
-                    star <= rating ? "text-yellow-400 scale-110" : "text-gray-300 hover:text-gray-400"
-                  }`}
+                  className={`transition-colors duration-200 ${star <= rating ? "text-yellow-400 scale-110" : "text-gray-300 hover:text-gray-400"
+                    }`}
                 >
                   ★
                 </span>
