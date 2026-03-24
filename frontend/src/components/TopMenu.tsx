@@ -1,13 +1,41 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function TopMenu() {
-  // Toggle isLoggedIn to true to see the "User/Admin" link
-  const [isLoggedIn, setIsLoggedIn] = useState(true); 
-  const [role, setRole] = useState("admin"); // Change to "user" to test User Info
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState("");
+  const [userName, setUserName] = useState("");
   
-  const mockUserName = "Alice";
+  const router = useRouter();
+  const pathname = usePathname(); // Detects page changes to update login status
+
+  useEffect(() => {
+    // Check localStorage for real auth data
+    const token = localStorage.getItem('token');
+    const storedRole = localStorage.getItem('role');
+    
+    // Note: In a real app, you'd store the name in localStorage 
+    // or fetch it from /auth/me
+    const storedName = localStorage.getItem('userName') || "User"; 
+
+    if (token) {
+      setIsLoggedIn(true);
+      setRole(storedRole || "user");
+      setUserName(storedName);
+    } else {
+      setIsLoggedIn(false);
+    }
+  }, [pathname]); // Refresh every time the user navigates to a new page
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userName');
+    setIsLoggedIn(false);
+    router.push('/');
+  };
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-black text-white shadow-md">
@@ -23,7 +51,7 @@ export default function TopMenu() {
       {/* Right: User Info and Buttons */}
       <div className="flex items-center gap-6">
         
-        {/* 🧪 TEST LINK: Click "User/Admin" to go to the Info Page */}
+        {/* Real Dynamic Link based on role */}
         {isLoggedIn && (
           <Link 
             href="/profile" 
@@ -34,19 +62,19 @@ export default function TopMenu() {
         )}
 
         <span className="text-sm text-gray-300">
-          {isLoggedIn && `User: ${mockUserName}`}
+          {isLoggedIn && `User: ${userName}`}
         </span>
 
         {isLoggedIn ? (
           <button
-            onClick={() => setIsLoggedIn(false)}
-            className="bg-gray-200 text-black px-4 py-1 text-sm hover:bg-white transition rounded-sm"
+            onClick={handleLogout}
+            className="bg-gray-200 text-black px-4 py-1 text-sm hover:bg-white transition rounded-sm font-medium"
           >
             Log out
           </button>
         ) : (
           <Link href="/login">
-            <button className="bg-gray-200 text-black px-4 py-1 text-sm hover:bg-white transition rounded-sm">
+            <button className="bg-gray-200 text-black px-4 py-1 text-sm hover:bg-white transition rounded-sm font-medium">
               Sign up/Log in
             </button>
           </Link>
