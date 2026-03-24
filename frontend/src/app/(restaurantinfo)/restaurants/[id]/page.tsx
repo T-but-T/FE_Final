@@ -12,30 +12,6 @@ export default function ReservationPage({ params }: PageProps) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const handleReservation = () => {
-  // 1. Basic validation to ensure time is selected
-  if (!reserveTime) {
-    alert("Please select a time.");
-    return;
-  }
-
-  // 2. Check if the selected time is within operating hours
-  // Lexicographical comparison works for "HH:mm" strings
-  const isOpening = reserveTime >= restaurant.openTime;
-  const isClosing = reserveTime <= restaurant.closeTime;
-
-  if (isOpening && isClosing) {
-    // Proceed with reservation
-    alert(`Reserved for ${reserveDate} at ${reserveTime}`);
-    // Your reservation API call would go here
-  } else {
-    // Show error if outside hours
-    alert(
-      `Sorry, this restaurant is only open between ${restaurant.openTime} and ${restaurant.closeTime}.`
-    );
-  }
-};
-
   // States for Booking and Rating
   const [reserveDate, setReserveDate] = useState("");
   const [reserveTime, setReserveTime] = useState("");
@@ -43,7 +19,7 @@ export default function ReservationPage({ params }: PageProps) {
 
   useEffect(() => {
     const now = new Date();
-    
+
     // Set default date to today (YYYY-MM-DD)
     setReserveDate(now.toISOString().split('T')[0]);
 
@@ -74,6 +50,59 @@ export default function ReservationPage({ params }: PageProps) {
 
   if (loading) return <div className="p-24 text-center mt-20 text-xl font-sans">Loading restaurant details...</div>;
   if (!restaurant) return <div className="p-24 text-center mt-20 text-xl text-red-500 font-sans">Restaurant not found.</div>;
+
+  const handleReservation = async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      // 1. ตรวจสอบการ Login
+      if (!token) {
+        alert("Please login first to make a reservation");
+        return;
+      }
+
+      // 2. ตรวจสอบเงื่อนไขเวลาเปิด-ปิดร้าน (Business Logic)
+      if (!reserveTime) {
+        alert("Please select a reservation time.");
+        return;
+      }
+
+      const isWithinHours = reserveTime >= restaurant.openTime && reserveTime <= restaurant.closeTime;
+      if (!isWithinHours) {
+        alert(`Sorry, this restaurant is open from ${restaurant.openTime} to ${restaurant.closeTime}`);
+        return;
+      }
+
+      // 3. เตรียมข้อมูลวันที่และเวลาส่งให้ Backend
+      const bookingDateTime = new Date(`${reserveDate}T${reserveTime}:00`).toISOString();
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}/reservations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` //
+        },
+        body: JSON.stringify({
+          bookingDate: bookingDateTime
+        }),
+      });
+
+      const json = await response.json();
+
+      if (response.ok) {
+        alert("Reservation Successful!");
+        // คุณสามารถเพิ่ม window.location.href = '/my-bookings' เพื่อความ UX ที่ดีได้ครับ
+      } else {
+        // แสดงข้อความ Error จริงจาก Backend (เช่น จองเกิน 3 ครั้ง)
+        alert(json.message || "Failed to make a reservation");
+      }
+    } catch (error) {
+      console.error('Reservation Error:', error);
+      alert("Server error. Please try again later.");
+    }
+  };
+
+
 
   return (
     <div className="min-h-screen bg-white text-black font-sans">
@@ -110,7 +139,7 @@ export default function ReservationPage({ params }: PageProps) {
           <div className="w-full md:w-1/2 flex flex-col justify-center items-center md:items-start">
             <div className="bg-gray-50 p-8 w-full max-w-87.5 flex flex-col items-center gap-4 rounded-xl border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-800">Select Date & Time</h3>
-              
+
               {/* Date Input - Set to trigger Calendar */}
               <div className="bg-white px-4 py-3 w-full flex items-center gap-3 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 transition-all">
                 <span className="text-xl">📅</span>
@@ -119,7 +148,7 @@ export default function ReservationPage({ params }: PageProps) {
                   value={reserveDate}
                   onChange={(e) => setReserveDate(e.target.value)}
                   // This triggers the native calendar picker when clicking the box
-                  onClick={(e) => (e.target as any).showPicker?.()} 
+                  onClick={(e) => (e.target as any).showPicker?.()}
                   className="w-full outline-none bg-transparent text-lg font-medium cursor-pointer"
                 />
               </div>
@@ -148,36 +177,14 @@ export default function ReservationPage({ params }: PageProps) {
         <hr className="my-4 border-gray-200" />
 
         {/* About Section */}
-      <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm flex flex-col gap-4 text-gray-700 text-sm md:text-base">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 border-b pb-2">About this Restaurant</h3>
-        
-        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
-          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">📍 Address:</span>
-          <span className="text-gray-600">
-            {restaurant.address} {restaurant.district} {restaurant.province}
-          </span>
+        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">About this Restaurant</h3>
+          <p className="text-gray-700 leading-relaxed mb-4">{restaurant.description || "No description available."}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <div><span className="font-bold text-gray-900">📍 Address:</span> {restaurant.address}</div>
+            <div><span className="font-bold text-gray-900">📞 Telephone:</span> {restaurant.tel}</div>
+          </div>
         </div>
-
-        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
-          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">ℹ️ Information:</span>
-          <span className="text-gray-600">
-            {restaurant.description || 'No information available'}
-          </span>
-        </div>
-
-        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
-          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">📞 Telephone:</span>
-          <span className="text-gray-600">{restaurant.tel}</span>
-        </div>
-
-        {/* New Open-Close Time Section */}
-        <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
-          <span className="w-40 font-medium shrink-0 whitespace-nowrap text-gray-900">🕒 Open-Close:</span>
-          <span className="text-gray-600">
-            {restaurant.openTime} - {restaurant.closeTime}
-          </span>
-        </div>
-      </div>
 
         {/* Review Rating Section */}
         <div className="mt-6 flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200">
@@ -188,9 +195,8 @@ export default function ReservationPage({ params }: PageProps) {
                 <span
                   key={star}
                   onClick={() => setRating(star)}
-                  className={`transition-colors duration-200 ${
-                    star <= rating ? "text-yellow-400 scale-110" : "text-gray-300 hover:text-gray-400"
-                  }`}
+                  className={`transition-colors duration-200 ${star <= rating ? "text-yellow-400 scale-110" : "text-gray-300 hover:text-gray-400"
+                    }`}
                 >
                   ★
                 </span>
