@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 import TopMenu from '@/components/TopMenu';
 import Link from 'next/link';
 
+// 🌟 Import Component ตัวใหม่เข้ามาใช้งาน
+import ReservationItem from '@/components/ReservationItem';
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -66,7 +69,6 @@ export default function ProfilePage() {
   };
 
   const handleCancel = (id: string) => {
-    // 🌟 1. เมื่อกด Cancel ให้กลับไปใช้เวลาเดิม (originalTime) และปิดโหมด Edit
     setReservations(reservations.map(res =>
       res.id === id ? { ...res, isEditing: false, time: res.originalTime } : res
     ));
@@ -98,7 +100,6 @@ export default function ProfilePage() {
 
       if (!response.ok) throw new Error('Update failed');
 
-      // 🌟 2. เมื่อ Save สำเร็จ ให้อัปเดตค่าเวลาใหม่, ปิดโหมด Edit และอัปเดต originalTime
       setReservations(reservations.map(res =>
         res.id === id ? { ...res, isEditing: false, originalTime: currentTime, rawDate: updatedDate.toISOString() } : res
       ));
@@ -180,56 +181,19 @@ export default function ProfilePage() {
             <div className="w-full">
               <h3 className="font-bold mb-4 text-xl">My Reservations (Max 3)</h3>
 
-              {/* 🌟 3. เอา overflow-y-auto ออก เพื่อไม่ให้มันตัด Dropdown ทิ้ง */}
               <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-inner min-h-[300px]">
                 {reservations.length > 0 ? reservations.map((res) => (
-                  <div key={res.id} className="relative flex flex-col sm:flex-row justify-between items-center bg-[#F9F9F9] p-5 border border-gray-200 rounded-lg mb-4 shadow-sm gap-4">
-                    <div className="flex flex-col text-center sm:text-left">
-                      <span className="font-bold text-xl text-blue-700">{res.restaurant}</span>
-                      <span className="text-sm text-gray-500 italic">Reserved for: {user.name}</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-center gap-3 relative">
-                      {res.isEditing ? (
-                        <>
-                          <TimePickerDropdown
-                            initialTime={res.time}
-                            onTimeChange={(newTime) => handleTimeUpdate(res.id, newTime)}
-                          />
-                          <button
-                            onClick={() => handleSave(res.id, res.time)}
-                            className="px-6 py-2 bg-black text-white font-bold rounded-lg border-2 border-black hover:bg-gray-800 transition"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => handleCancel(res.id)}
-                            className="px-6 py-2 bg-white text-gray-600 font-bold rounded-lg border-2 border-gray-400 hover:bg-gray-100 transition"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <div className="bg-white border border-gray-300 px-5 py-2.5 rounded-lg font-bold shadow-sm text-blue-600 min-w-[120px] text-center">
-                            {res.time}
-                          </div>
-                          <button
-                            onClick={() => handleEditToggle(res.id)}
-                            className="px-8 py-2.5 bg-white text-black border-2 border-black font-bold hover:bg-gray-100 transition rounded-lg"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(res.id)}
-                            className="px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition rounded-lg"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  // 🌟 เรียกใช้ Component ที่เราเพิ่งแยกออกไป
+                  <ReservationItem
+                    key={res.id}
+                    res={res}
+                    userName={user.name}
+                    onEditToggle={handleEditToggle}
+                    onCancel={handleCancel}
+                    onSave={handleSave}
+                    onDelete={handleDelete}
+                    onTimeUpdate={handleTimeUpdate}
+                  />
                 )) : (
                   <div className="py-20 text-center text-gray-400 font-medium">No reservations found</div>
                 )}
@@ -238,92 +202,6 @@ export default function ProfilePage() {
           )}
         </div>
       </main>
-    </div>
-  );
-}
-
-/* --- CUSTOM DROPDOWN COMPONENT (แก้ไขให้ลื่นไหล ไม่มีบัคหน่วง) --- */
-function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string, onTimeChange: (time: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [hour, setHour] = useState(initialTime.split(':')[0]);
-  const [minute, setMinute] = useState(initialTime.split(':')[1].split(' ')[0]);
-  const [ampm, setAmpm] = useState(initialTime.split(' ')[1]);
-
-  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-
-  // 🌟 สร้างฟังก์ชันจัดการเวลาแยกต่างหากแทนการใช้ useEffect
-  const handleTimeSelect = (type: 'hour' | 'minute' | 'ampm', value: string) => {
-    let newHour = hour;
-    let newMinute = minute;
-    let newAmpm = ampm;
-
-    if (type === 'hour') {
-      setHour(value);
-      newHour = value;
-    } else if (type === 'minute') {
-      setMinute(value);
-      newMinute = value;
-    } else if (type === 'ampm') {
-      setAmpm(value);
-      newAmpm = value;
-    }
-
-    // ส่งค่ากลับไปหา Parent ทันทีที่กดเลือก
-    onTimeChange(`${newHour}:${newMinute} ${newAmpm}`);
-  };
-
-  return (
-    <div className="relative z-[9999]">
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-white border-2 border-[#5C5CFF] px-4 py-2 rounded-lg cursor-pointer flex items-center gap-3 text-black font-bold shadow-sm hover:border-blue-700 transition min-w-[130px]"
-      >
-        <span>{hour}:{minute} {ampm}</span>
-        <span className={`text-[10px] transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
-      </div>
-
-      {isOpen && (
-        <div className="absolute top-full mt-2 left-0 bg-white border border-gray-300 shadow-2xl rounded-xl flex h-48 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-
-          <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1 bg-white">
-            {hours.map(h => (
-              <div
-                key={h}
-                onClick={() => handleTimeSelect('hour', h)}
-                className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${hour === h ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}
-              >
-                {h}
-              </div>
-            ))}
-          </div>
-
-          <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide py-1 bg-white">
-            {minutes.map(m => (
-              <div
-                key={m}
-                onClick={() => handleTimeSelect('minute', m)}
-                className={`p-2 text-center cursor-pointer hover:bg-blue-50 text-sm ${minute === m ? 'bg-[#5C5CFF] text-white font-bold' : ''}`}
-              >
-                {m}
-              </div>
-            ))}
-          </div>
-
-          <div className="w-16 flex flex-col py-1 bg-white">
-            {['AM', 'PM'].map(p => (
-              <div
-                key={p}
-                onClick={() => handleTimeSelect('ampm', p)}
-                className={`p-2 text-center cursor-pointer hover:bg-blue-50 flex-1 flex items-center justify-center text-sm font-bold ${ampm === p ? 'bg-[#5C5CFF] text-white' : ''}`}
-              >
-                {p}
-              </div>
-            ))}
-          </div>
-
-        </div>
-      )}
     </div>
   );
 }

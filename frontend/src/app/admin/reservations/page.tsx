@@ -2,28 +2,40 @@
 import { useState, useEffect } from 'react';
 import TopMenu from "@/components/TopMenu";
 
+// 🌟 Import TimePickerDropdown ตัวใหม่ที่เราแยกไฟล์ไว้
+import TimePickerDropdown from '@/components/TimePickerDropdown';
+
 export default function AdminReservations() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 🌟 ใช้ API URL จาก .env
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
   // 1. ดึงข้อมูลการจองทั้งหมด
   useEffect(() => {
     const fetchReservations = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/v1/reservations', {
+        const response = await fetch(`${API_URL}/reservations`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const json = await response.json();
-        
-        // ข้อมูลจาก Backend จะมี restaurant.name และ user.name (ถ้า Populate มาแล้ว)
-        const dataWithEditState = json.data.map((res: any) => ({ 
-          ...res, 
-          isEditing: false,
-          // แปลงวันที่/เวลาจาก DB มาเป็น Format ที่อ่านง่ายสำหรับ UI
-          displayTime: new Date(res.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-        }));
-        setReservations(dataWithEditState);
+
+        if (json.success) {
+          const dataWithEditState = json.data.map((res: any) => {
+            const timeString = new Date(res.bookingDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            return {
+              ...res,
+              id: res._id, // แปลง _id เป็น id เพื่อให้เรียกใช้ง่ายๆ
+              isEditing: false,
+              displayTime: timeString,
+              originalTime: timeString, // 🌟 เก็บค่าเวลาเดิมไว้ใช้ตอนกด Cancel
+              rawDate: res.bookingDate, // 🌟 เก็บวันที่เดิมไว้ผสมกับเวลาตอน Save
+            };
+          });
+          setReservations(dataWithEditState);
+        }
       } catch (error) {
         console.error('Failed to fetch reservations:', error);
       } finally {
@@ -31,165 +43,150 @@ export default function AdminReservations() {
       }
     };
     fetchReservations();
-  }, []);
+  }, [API_URL]);
 
-  const handleEditToggle = async (id: string, currentIsEditing: boolean) => {
-    if (currentIsEditing) {
-      const token = localStorage.getItem('token');
-      const resToUpdate = reservations.find(r => r._id === id);
-      
-      try {
-        // 2. ส่งคำสั่ง UPDATE (PUT) ไปที่ Database
-        const response = await fetch(`http://localhost:5000/api/v1/reservations/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            bookingDate: resToUpdate.bookingDate // ตรวจสอบว่า Format วันที่ถูกต้องตามที่ Backend ต้องการ
-          }),
-        });
-
-        if (!response.ok) throw new Error('Update failed');
-        alert("Reservation updated!");
-      } catch (error) {
-        alert("Error updating reservation");
-        return;
-      }
-    }
-    setReservations(reservations.map(res => res._id === id ? { ...res, isEditing: !currentIsEditing } : res));
-  };
-
-  const handleTimeUpdate = (id: string, newTime: string) => {
-    setReservations(reservations.map(res => 
-      res._id === id ? { ...res, displayTime: newTime } : res
+  const handleEditToggle = (id: string) => {
+    setReservations(reservations.map(res =>
+      res.id === id ? { ...res, isEditing: true } : res
     ));
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Do you want to cancel this reservation?")) {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5000/api/v1/reservations/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+  const handleCancel = (id: string) => {
+    // 🌟 กลับไปใช้เวลาเดิม (originalTime) เมื่อกดยกเลิก
+    setReservations(reservations.map(res =>
+      res.id === id ? { ...res, isEditing: false, displayTime: res.originalTime } : res
+    ));
+  };
 
-        if (response.ok) {
-          setReservations(reservations.filter(res => res._id !== id));
-          alert("Deleted successfully");
-        }
-      } catch (error) {
-        alert("Could not delete reservation");
-      }
+  const handleSave = async (id: string, currentTime: string) => {
+    const currentRes = reservations.find(r => r.id === id);
+    if (!currentRes) return;
+
+    const token = localStorage.getItem('token');
+
+    try {
+      // 🌟 แปลงเวลา "10:30 AM" กลับไปเป็น ISO Date
+      const [time, modifier] = currentTime.split(' ');
+      let [hours, minutes] = time.split(':');
+      let h = parseInt(hours, 10);
+      if (modifier === 'PM' && h < 12) h += 12;
+      if (modifier === 'AM' && h === 12) h = 0;
+
+      const updatedDate = new Date(currentRes.rawDate);
+      updatedDate.setHours(h, parseInt(minutes, 10));
+
+      const response = await fetch(`${API_URL}/reservations/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ bookingDate: updatedDate.toISOString() }),
+      });
+
+      if (!response.ok) throw new Error('Update failed');
+
+      // อัปเดตข้อมูลในหน้าจอ
+      setReservations(reservations.map(res =>
+        res.id === id ? { ...res, isEditing: false, originalTime: currentTime, rawDate: updatedDate.toISOString() } : res
+      ));
+      alert("Reservation updated successfully!");
+    } catch (error) {
+      alert("Error updating reservation.");
     }
   };
 
-  if (loading) return <div className="p-24 text-center">Loading Reservations...</div>;
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Do you want to cancel this reservation?")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/reservations/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setReservations(reservations.filter(res => res.id !== id));
+        alert("Deleted successfully");
+      }
+    } catch (error) {
+      alert("Could not delete reservation");
+    }
+  };
+
+  const handleTimeUpdate = (id: string, newTime: string) => {
+    setReservations(reservations.map(res =>
+      res.id === id ? { ...res, displayTime: newTime } : res
+    ));
+  };
+
+  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center text-black font-bold">Loading Reservations...</div>;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-sans text-black">
       <TopMenu />
-      <main className="flex items-center justify-center pt-24 p-6 text-black">
-        <div className="w-full max-w-4xl bg-[#E5E5E5] rounded-xl p-12 shadow-lg min-h-125">
-          <h2 className="text-2xl font-bold mb-6">Reservation Management</h2>
-          
-          <div className="bg-white border border-gray-300 rounded-lg h-100 overflow-y-auto p-6 shadow-inner">
-            {reservations.map((res) => (
-              <div key={res._id} className="flex justify-between items-center bg-[#F9F9F9] p-4 border border-gray-200 rounded mb-4 shadow-sm">
-                <div className="flex flex-col">
-                  {/* แสดงชื่อร้านจากข้อมูลที่ Populate */}
-                  <span className="font-bold text-xl">{res.restaurant?.name || "Unknown Restaurant"}</span>
-                  <span className="text-md text-gray-500">User: {res.user?.name || "Customer"}</span>
+      <main className="flex items-center justify-center pt-24 p-6">
+        <div className="w-full max-w-4xl bg-[#E5E5E5] rounded-xl p-12 shadow-lg min-h-[500px]">
+          <h2 className="text-2xl font-bold mb-6">Reservation Management (Admin)</h2>
+
+          {/* 🌟 เอา overflow-y-auto ออก เพื่อไม่ให้ทับ Dropdown */}
+          <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-inner min-h-[300px]">
+            {reservations.length > 0 ? reservations.map((res) => (
+              <div key={res.id} className="relative flex flex-col sm:flex-row justify-between items-center bg-[#F9F9F9] p-5 border border-gray-200 rounded-lg mb-4 shadow-sm gap-4">
+
+                <div className="flex flex-col text-center sm:text-left">
+                  <span className="font-bold text-xl text-blue-700">{res.restaurant?.name || "Unknown Restaurant"}</span>
+                  <span className="text-sm text-gray-500 italic">User: {res.user?.name || "Customer"}</span>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center justify-center gap-3 relative">
                   {res.isEditing ? (
-                    <TimePickerDropdown 
-                      initialTime={res.displayTime} 
-                      onTimeChange={(t) => handleTimeUpdate(res._id, t)} 
-                    />
+                    <>
+                      <TimePickerDropdown
+                        initialTime={res.displayTime}
+                        onTimeChange={(t) => handleTimeUpdate(res.id, t)}
+                      />
+                      <button
+                        onClick={() => handleSave(res.id, res.displayTime)}
+                        className="px-6 py-2 bg-black text-white font-bold rounded-lg border-2 border-black hover:bg-gray-800 transition"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => handleCancel(res.id)}
+                        className="px-6 py-2 bg-white text-gray-600 font-bold rounded-lg border-2 border-gray-400 hover:bg-gray-100 transition"
+                      >
+                        Cancel
+                      </button>
+                    </>
                   ) : (
-                    <div className="bg-white border border-gray-300 px-4 py-2 rounded font-medium shadow-sm text-lg">
-                      {res.displayTime}
-                    </div>
+                    <>
+                      <div className="bg-white border border-gray-300 px-5 py-2.5 rounded-lg font-bold shadow-sm text-blue-600 min-w-[120px] text-center">
+                        {res.displayTime}
+                      </div>
+                      <button
+                        onClick={() => handleEditToggle(res.id)}
+                        className="px-8 py-2.5 bg-white text-black border-2 border-black font-bold hover:bg-gray-100 transition rounded-lg"
+                      >
+                        Edit
+                      </button>
+                    </>
                   )}
-
-                  <button 
-                    onClick={() => handleEditToggle(res._id, res.isEditing)}
-                    className={`border-2 border-black px-8 py-2 font-bold rounded transition ${res.isEditing ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}
-                  >
-                    {res.isEditing ? "Save" : "Edit"}
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(res._id)}
-                    className="border-2 border-black px-8 py-2 bg-white text-red-600 font-bold hover:bg-red-50 transition rounded"
+                  <button
+                    onClick={() => handleDelete(res.id)}
+                    className="px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition rounded-lg"
                   >
                     Delete
                   </button>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="py-20 text-center text-gray-400 font-medium">No reservations found</div>
+            )}
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-// วางคอมโพเนนต์นี้ไว้ด้านล่างสุดของไฟล์ AdminReservations.tsx
-function TimePickerDropdown({ initialTime, onTimeChange }: { initialTime: string, onTimeChange: (time: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // ป้องกัน Error กรณี initialTime ไม่มีค่าหรือรูปแบบผิด
-  const timeParts = initialTime?.split(':') || ["12", "00 AM"];
-  const minuteParts = timeParts[1]?.split(' ') || ["00", "AM"];
-
-  const [hour, setHour] = useState(timeParts[0]);
-  const [minute, setMinute] = useState(minuteParts[0]);
-  const [ampm, setAmpm] = useState(minuteParts[1]);
-
-  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-
-  // อัปเดตค่ากลับไปยังคอมโพเนนต์แม่เมื่อมีการเปลี่ยนเวลา
-  useEffect(() => {
-    onTimeChange(`${hour}:${minute} ${ampm}`);
-  }, [hour, minute, ampm]);
-
-  return (
-    <div className="relative">
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-white border-2 border-blue-400 px-3 py-1.5 rounded cursor-pointer flex items-center gap-2 text-black font-medium min-w-[120px] justify-between shadow-sm hover:border-blue-600 transition"
-      >
-        <span>{hour}:{minute} {ampm}</span>
-        <span className="text-[10px] text-gray-400">{isOpen ? '▲' : '▼'}</span>
-      </div>
-
-      {isOpen && (
-        <div className="absolute top-full mt-1 bg-white border border-gray-300 shadow-2xl rounded flex z-50 h-40 overflow-hidden ring-1 ring-black ring-opacity-5">
-          {/* ส่วนเลือกชั่วโมง */}
-          <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide">
-            {hours.map(h => (
-              <div key={h} onClick={() => setHour(h)} className={`p-1.5 text-center cursor-pointer text-sm hover:bg-blue-50 ${hour === h ? 'bg-blue-100 font-bold text-blue-700' : 'text-gray-700'}`}>{h}</div>
-            ))}
-          </div>
-          {/* ส่วนเลือกนาที */}
-          <div className="overflow-y-auto w-12 border-r border-gray-100 scrollbar-hide">
-            {minutes.map(m => (
-              <div key={m} onClick={() => setMinute(m)} className={`p-1.5 text-center cursor-pointer text-sm hover:bg-blue-50 ${minute === m ? 'bg-blue-100 font-bold text-blue-700' : 'text-gray-700'}`}>{m}</div>
-            ))}
-          </div>
-          {/* ส่วนเลือก AM/PM */}
-          <div className="w-16 flex flex-col bg-gray-50">
-            {['AM', 'PM'].map(p => (
-              <div key={p} onClick={() => setAmpm(p)} className={`p-1.5 text-center cursor-pointer text-xs hover:bg-blue-50 flex-1 flex items-center justify-center border-b last:border-0 ${ampm === p ? 'bg-blue-600 text-white font-bold' : 'text-gray-600'}`}>{p}</div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

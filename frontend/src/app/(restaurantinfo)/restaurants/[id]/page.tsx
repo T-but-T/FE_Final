@@ -1,6 +1,8 @@
 'use client'
 import { useState, use, useEffect } from 'react';
 import TopMenu from '@/components/TopMenu';
+import ReviewBox from '@/components/ReviewBox'; // 🌟 Import
+import RestaurantInfo from '@/components/RestaurantInfo'; // 🌟 Import
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,19 +16,14 @@ export default function ReservationPage({ params }: PageProps) {
 
   const [reserveDate, setReserveDate] = useState("");
   const [reserveTime, setReserveTime] = useState("");
-  const [rating, setRating] = useState(0);
+  // ✂️ ลบ State rating ออกไปแล้ว เพราะย้ายไปอยู่ ReviewBox แทน
 
   useEffect(() => {
     const now = new Date();
-
-    // Set default date to today (YYYY-MM-DD)
     setReserveDate(now.toISOString().split('T')[0]);
 
-    // Set default time (HH:mm)
     const currentTime = now.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+      hour: '2-digit', minute: '2-digit', hour12: false
     });
     setReserveTime(currentTime);
 
@@ -34,9 +31,7 @@ export default function ReservationPage({ params }: PageProps) {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}`);
         const json = await response.json();
-        if (json.success) {
-          setRestaurant(json.data);
-        }
+        if (json.success) setRestaurant(json.data);
       } catch (error) {
         console.error('Error fetching restaurant detail:', error);
       } finally {
@@ -47,52 +42,32 @@ export default function ReservationPage({ params }: PageProps) {
     if (id) fetchRestaurantDetail();
   }, [id]);
 
-  if (loading) return <div className="p-24 text-center mt-20 text-xl font-sans">Loading restaurant details...</div>;
-  if (!restaurant) return <div className="p-24 text-center mt-20 text-xl text-red-500 font-sans">Restaurant not found.</div>;
-
   const handleReservation = async () => {
     try {
       const token = localStorage.getItem('token');
-
-      // 1. ตรวจสอบการ Login
-      if (!token) {
-        alert("Please login first to make a reservation");
-        return;
-      }
-
-      // 2. ตรวจสอบเงื่อนไขเวลาเปิด-ปิดร้าน (Business Logic)
-      if (!reserveTime) {
-        alert("Please select a reservation time.");
-        return;
-      }
+      if (!token) return alert("Please login first to make a reservation");
+      if (!reserveTime) return alert("Please select a reservation time.");
 
       const isWithinHours = reserveTime >= restaurant.openTime && reserveTime <= restaurant.closeTime;
-      if (!isWithinHours) {
-        alert(`Sorry, this restaurant is open from ${restaurant.openTime} to ${restaurant.closeTime}`);
-        return;
-      }
+      if (!isWithinHours) return alert(`Sorry, this restaurant is open from ${restaurant.openTime} to ${restaurant.closeTime}`);
 
-      // 3. เตรียมข้อมูลวันที่และเวลาส่งให้ Backend
       const bookingDateTime = new Date(`${reserveDate}T${reserveTime}:00`).toISOString();
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/restaurants/${id}/reservations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` //
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          bookingDate: bookingDateTime
-        }),
+        body: JSON.stringify({ bookingDate: bookingDateTime }),
       });
 
       const json = await response.json();
 
       if (response.ok) {
         alert("Reservation Successful!");
-        // คุณสามารถเพิ่ม window.location.href = '/my-bookings' เพื่อความ UX ที่ดีได้ครับ
+        window.location.href = '/profile'; // แนะนำให้เด้งไปหน้า Profile หลังจองเสร็จครับ
       } else {
-        // แสดงข้อความ Error จริงจาก Backend (เช่น จองเกิน 3 ครั้ง)
         alert(json.message || "Failed to make a reservation");
       }
     } catch (error) {
@@ -101,7 +76,8 @@ export default function ReservationPage({ params }: PageProps) {
     }
   };
 
-
+  if (loading) return <div className="p-24 text-center mt-20 text-xl font-sans">Loading restaurant details...</div>;
+  if (!restaurant) return <div className="p-24 text-center mt-20 text-xl text-red-500 font-sans">Restaurant not found.</div>;
 
   return (
     <div className="min-h-screen bg-white text-black font-sans">
@@ -114,15 +90,13 @@ export default function ReservationPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold mb-2 text-gray-900">{restaurant.name}</h1>
           <div className="flex items-center gap-2 text-xl">
             <div className="text-yellow-400 flex">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span key={star}>★</span>
-              ))}
+              {[1, 2, 3, 4, 5].map((star) => <span key={star}>★</span>)}
             </div>
             <span className="text-base text-gray-600 font-medium">(4.5)</span>
           </div>
         </div>
 
-        {/* Hero Section */}
+        {/* Hero Section & Reservation Form */}
         <div className="flex flex-col md:flex-row gap-8 w-full mt-4">
           <div className="w-full md:w-1/2">
             <div className="bg-gray-100 w-full aspect-4/3 relative overflow-hidden rounded-lg shadow-md border border-gray-200">
@@ -134,25 +108,21 @@ export default function ReservationPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Reservation Box with Calendar & Time */}
           <div className="w-full md:w-1/2 flex flex-col justify-center items-center md:items-start">
             <div className="bg-gray-50 p-8 w-full max-w-87.5 flex flex-col items-center gap-4 rounded-xl border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-800">Select Date & Time</h3>
 
-              {/* Date Input - Set to trigger Calendar */}
               <div className="bg-white px-4 py-3 w-full flex items-center gap-3 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 transition-all">
                 <span className="text-xl">📅</span>
                 <input
                   type="date"
                   value={reserveDate}
                   onChange={(e) => setReserveDate(e.target.value)}
-                  // This triggers the native calendar picker when clicking the box
                   onClick={(e) => (e.target as any).showPicker?.()}
                   className="w-full outline-none bg-transparent text-lg font-medium cursor-pointer"
                 />
               </div>
 
-              {/* Time Input */}
               <div className="bg-white px-4 py-3 w-full flex items-center gap-3 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 transition-all">
                 <span className="text-xl">🕒</span>
                 <input
@@ -175,71 +145,9 @@ export default function ReservationPage({ params }: PageProps) {
 
         <hr className="my-4 border-gray-200" />
 
-        {/* About Section */}
-        <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">About this Restaurant</h3>
-          <p className="text-gray-700 leading-relaxed mb-6">
-            {restaurant.description || "No description available."}
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4 text-sm text-gray-600">
-            <div className="flex items-start gap-2">
-              <span className="text-lg">📍</span>
-              <div>
-                <span className="font-bold text-gray-900 block">Address</span>
-                {restaurant.address} {restaurant.district} {restaurant.province} {restaurant.postalcode}
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2">
-              <span className="text-lg">📞</span>
-              <div>
-                <span className="font-bold text-gray-900 block">Telephone</span>
-                {restaurant.tel}
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-lg">🕒</span>
-              <div>
-                <span className="font-bold text-gray-900 block">Operating Hours</span>
-                {restaurant.openTime} - {restaurant.closeTime}
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2">
-              <span className="text-lg">🌍</span>
-              <div>
-                <span className="font-bold text-gray-900 block">Region</span>
-                {restaurant.region || "Bangkok"}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Review Rating Section */}
-        <div className="mt-6 flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200">
-          <div className="text-lg font-bold text-gray-800">Rate your experience</div>
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="text-3xl tracking-widest cursor-pointer flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className={`transition-colors duration-200 ${star <= rating ? "text-yellow-400 scale-110" : "text-gray-300 hover:text-gray-400"
-                    }`}
-                >
-                  ★
-                </span>
-              ))}
-            </div>
-            <button
-              onClick={() => alert(rating > 0 ? `Sent ${rating} stars review!` : 'Please select rating')}
-              className="bg-gray-800 text-white px-10 py-2 rounded-full font-medium hover:bg-black transition-all active:scale-95"
-            >
-              Send Review
-            </button>
-          </div>
-        </div>
+        {/* 🌟 เรียกใช้ Components ที่แยกไว้ */}
+        <RestaurantInfo restaurant={restaurant} />
+        <ReviewBox />
 
       </main>
     </div>

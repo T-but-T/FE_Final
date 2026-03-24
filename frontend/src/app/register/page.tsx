@@ -10,25 +10,29 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [tel, setTel] = useState('');
   const [error, setError] = useState('');
+  
+  // 🌟 เพิ่ม State เพื่อเช็คว่ากำลังโหลดอยู่ไหม (ป้องกันคนกดปุ่มเบิ้ล)
+  const [isSubmitting, setIsSubmitting] = useState(false); 
   const router = useRouter();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); // รีเซ็ต error ทุกครั้งที่กดปุ่ม
+    setError(''); 
 
-    // 🌟 1. เช็คความยาว Password (Client-side Validation)
     if (password.length < 6) {
       setError('Password must be at least 6 characters long.');
-      return; // หยุดการทำงาน ไม่ยิง API
+      return; 
     }
 
-    // 🌟 2. เช็คความยาวเบอร์โทร (เบื้องต้น)
     if (tel.length < 9) {
       setError('Please enter a valid telephone number.');
       return;
     }
+
+    // 🌟 เริ่มล็อกปุ่ม
+    setIsSubmitting(true);
 
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -51,12 +55,14 @@ export default function RegisterPage() {
         alert('Registration successful! Please login.');
         router.push('/login');
       } else {
-        // กรณี Backend ตีกลับมา (เช่น Email ซ้ำ)
         setError(data.message || 'Registration failed. Please try again.');
       }
     } catch (err) {
       console.error('Register error:', err);
       setError('Connection error. Is the backend running?');
+    } finally {
+      // 🌟 คืนค่าปุ่มให้กดได้ใหม่ ไม่ว่าจะสมัครผ่านหรือพัง
+      setIsSubmitting(false);
     }
   };
 
@@ -71,7 +77,6 @@ export default function RegisterPage() {
 
           <form onSubmit={handleRegister} className="w-full flex flex-col gap-5 items-center">
 
-            {/* ส่วนแสดง Error สีแดง */}
             {error && (
               <div className="w-full bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium border border-red-200 animate-shake">
                 {error}
@@ -102,7 +107,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6} // กันไว้อีกชั้นด้วย HTML attribute
+              minLength={6}
               className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
@@ -115,11 +120,15 @@ export default function RegisterPage() {
               className="w-full bg-white px-5 py-4 text-lg border-2 border-transparent focus:border-[#5C5CFF] rounded-xl outline-none shadow-sm transition-all"
             />
 
+            {/* 🌟 อัปเดตปุ่มให้เปลี่ยนสถานะตอนกำลังโหลด */}
             <button
               type="submit"
-              className="w-full bg-[#5C5CFF] text-white py-4 rounded-xl text-xl font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-lg mt-2"
+              disabled={isSubmitting} // ล็อกปุ่ม
+              className={`w-full text-white py-4 rounded-xl text-xl font-bold transition-all shadow-lg mt-2 ${
+                isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-[#5C5CFF] hover:bg-blue-700 active:scale-95'
+              }`}
             >
-              Sign Up
+              {isSubmitting ? 'Creating Account...' : 'Sign Up'}
             </button>
 
           </form>
