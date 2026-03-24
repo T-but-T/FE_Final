@@ -18,7 +18,7 @@ export default function LoginPage() {
       <TopMenu />
 
       {/* Main Content: จัดให้อยู่กึ่งกลางหน้าจอ */}
-      <main className="flex-grow flex items-center justify-center p-6 pt-24">
+      <main className="grow flex items-center justify-center p-6 pt-24">
 
         {/* กล่องสีเทาตรงกลาง */}
         <div className="bg-[#D9D9D9] w-full max-w-2xl p-12 md:p-16 flex flex-col items-center gap-6 rounded-sm">
