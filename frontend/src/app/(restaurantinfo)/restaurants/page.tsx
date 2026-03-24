@@ -55,7 +55,7 @@ export default function ListPage() {
                   <span className="text-gray-200">★</span>
                 </div>
 
-                {/* ส่ง ID ไปที่หน้าจองตาม Presentation Journey ข้อ 4 [cite: 159] */}
+                
                 <Link href={`/restaurant/${venue.id}`}>
                   <button className="bg-[#5C5CFF] hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md transition duration-300 w-fit text-sm shadow-sm">
                     Click to reserve
@@ -63,11 +63,11 @@ export default function ListPage() {
                 </Link>
               </div>
 
-              {/* ฝั่งขวา: รายละเอียดจริงจาก Database */}
+              
               <div className="w-full md:w-2/3 flex flex-col justify-center gap-4 text-gray-700 text-sm md:text-base">
                 <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
                   <span className="w-40 font-medium shrink-0 whitespace-nowrap">Address:</span>
-                  <span className="text-gray-600">{venue.address}</span>
+                  <span className="text-gray-600">{venue.address} {venue.district} {venue.province}</span>
                 </div>
                 <div className="flex items-start border-b border-dotted border-gray-400 pb-2">
                   <span className="w-40 font-medium shrink-0 whitespace-nowrap">Information:</span>
