@@ -12,7 +12,6 @@ export default function ReservationPage({ params }: PageProps) {
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // States for Booking and Rating
   const [reserveDate, setReserveDate] = useState("");
   const [reserveTime, setReserveTime] = useState("");
   const [rating, setRating] = useState(0);
